@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа F3 — Смена частоты дискретизации</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;}
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600; box-shadow:var(--shadow); transition:transform .15s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);}
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px; font-family:"SF Mono",Menlo,Consolas,monospace;}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px;}
+  .legend span{margin-right:16px; white-space:nowrap;}
+  .legend .sw{display:inline-block; width:18px; border-top:3px solid var(--accent);
+    margin-right:6px; vertical-align:middle;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 90px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line); background:var(--accent-soft);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа F3</span>
+  <h1>Смена частоты дискретизации</h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема, три интерактивных примера</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> запись уже сделана — а частоту дискретизации надо изменить.
+    Один датасет писали на 5120 Гц, другой на 2048, твой браслет отдаёт 1000, а модель
+    обучена на 200. Пока все записи не приведены к одной частоте, их нельзя ни сравнить,
+    ни подать в один классификатор.
+  </p>
+  <p style="margin-bottom:0">
+    Что ты поймёшь руками: куда именно <b>падает</b> каждая частота, когда $F_д$ понижают;
+    почему выбрасывать каждый $q$-й отсчёт без фильтра — это не «прореживание», а порча
+    записи; откуда при повышении частоты берутся <b>копии спектра</b>, которых в сигнале
+    не было; и как одним дробным множителем $p/q$ свести 5120 Гц и 2048 Гц к общей тысяче.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">Три операции, три множителя:</p>
+  <table>
+    <tr><th>Операция</th><th>Что делает</th><th>Новая частота</th></tr>
+    <tr><td><span class="term" data-tip="Децимация (прореживание): взять каждый q-й отсчёт. Обязательно после анти-алиасного фильтра, иначе всё, что выше новой частоты Найквиста, сложится обратно в полосу.">децимация</span> в $q$ раз</td>
+        <td>ФНЧ, затем берём каждый $q$-й отсчёт</td><td>$F_{д2}=F_{д1}/q$</td></tr>
+    <tr><td><span class="term" data-tip="Интерполяция: вставить p−1 нулей между отсчётами и сгладить фильтром. Нули не добавляют информации — они только освобождают место для новых отсчётов.">интерполяция</span> в $p$ раз</td>
+        <td>вставляем $p-1$ нулей, затем ФНЧ и умножение на $p$</td><td>$F_{д2}=p\,F_{д1}$</td></tr>
+    <tr><td>дробное изменение</td><td>сначала интерполяция в $p$, потом децимация в $q$</td>
+        <td>$F_{д2}=F_{д1}\,p/q$</td></tr>
+  </table>
+  <p>Главная формула работы — куда попадёт частота $f$ после понижения до $F_{д2}$.
+  Спектр складывается «гармошкой» вокруг кратных $F_{д2}$:</p>
+  \[ f_{\text{нов}} \;=\; \Bigl|\,f - F_{д2}\cdot\operatorname{round}\!\bigl(f/F_{д2}\bigr)\Bigr|. \]
+  <p style="margin-bottom:0">Если $f$ ниже новой частоты
+  <span class="term" data-tip="Частота Найквиста: половина частоты дискретизации. Всё, что выше неё, при дискретизации складывается обратно в полосу и становится неотличимо от низкой частоты.">Найквиста</span>
+  $F_{д2}/2$, формула вернёт саму $f$ — ничего не произошло. Если выше — вернёт
+  <b>чужую частоту</b>, и на этом месте в записи появится линия, которой там не было.</p>
+</div>
+
+<!-- ============ КУДА ПАДАЕТ ЧАСТОТА ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Куда падает частота — и почему это необратимо<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Возьмём синус частоты $f$ и запишем его на частоте $F_{д2}$.
+    Отсчёты — это значения в моменты $t_n = n/F_{д2}$:</p>
+    \[ x[n]=\cos\!\bigl(2\pi f\,n/F_{д2}+\varphi\bigr). \]
+    <p>Прибавим к $f$ ровно $F_{д2}$. Аргумент косинуса вырастет на $2\pi n$ — а косинус
+    имеет период $2\pi$, и $n$ целое. Значит <b>все отсчёты совпадут до последнего знака</b>:</p>
+    \[ \cos\!\bigl(2\pi (f+F_{д2})n/F_{д2}\bigr)=\cos\!\bigl(2\pi f n/F_{д2}+2\pi n\bigr)
+       =\cos\!\bigl(2\pi f n/F_{д2}\bigr). \]
+    <p>Отсюда всё и следует. Частоты $f$, $f\pm F_{д2}$, $f\pm 2F_{д2}$, … дают <b>одну и ту же
+    последовательность чисел</b>. Плюс косинус чётный, поэтому $-f$ неотличима от $+f$.
+    Собираем оба факта вместе — и получаем формулу «гармошки» из блока выше: ближайшее
+    кратное $F_{д2}$ вычитается, знак отбрасывается.</p>
+    <p><b>Почему необратимо.</b> Записав числа, ты уже не знаешь, какая из бесконечного
+    множества частот их породила. Информации, по которой можно было бы различить,
+    в отсчётах просто нет. Поэтому наложение <span class="term" data-tip="Алиасинг (наложение спектров): ситуация, когда две разные частоты дают одинаковые отсчёты. После записи их уже не различить никаким алгоритмом.">лечат только до</span>
+    прореживания — фильтром, — и никогда после.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Во сколько раз понижаем частоту дискретизации. При q = 4 из 1000 Гц получается 250 Гц, и новая частота Найквиста — 125 Гц.">Множитель $q$</span></label><input type="range" id="a_q" min="2" max="8" step="1" value="4"><span class="val" id="a_qv">4</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Частота, которую мы отслеживаем по карте. Красная точка показывает, куда она упадёт после понижения частоты дискретизации.">Пробная $f$</span></label><input type="range" id="a_f" min="5" max="495" step="5" value="350"><span class="val" id="a_fv">350 Гц</span></div>
+      </div>
+      <div class="readout ok" id="a_out"></div>
+      <canvas id="a_map" class="scope" width="840" height="230"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="border-color:var(--accent)"></span>куда упадёт частота</span>
+        <span><span class="sw" style="border-color:var(--ok); border-top-style:dotted"></span>честная зона: ниже $F_{д2}/2$ ничего не меняется</span>
+        <span><span class="sw" style="border-color:var(--warn)"></span>сеть 50 Гц и её нечётные гармоники</span>
+      </div>
+      <div class="muted" style="margin-top:2px">По горизонтали — частота в исходной записи
+        (1000 Гц), по вертикали — куда она попадёт в новой. Кривая — та самая «гармошка».</div>
+    </div>
+
+    <div class="formula-ex">
+      <b>Разбор по числам.</b> Понижаем 1000 Гц до $F_{д2}=250$ Гц, новый Найквист — 125 Гц.
+      Смотрим, что станет с сетевой наводкой и её нечётными гармониками:<br>
+      · 50 Гц: $\operatorname{round}(50/250)=0$, значит $|50-0|=\mathbf{50}$ Гц — на месте, она ниже 125.<br>
+      · 150 Гц: $\operatorname{round}(150/250)=1$, значит $|150-250|=\mathbf{100}$ Гц — <b>чужая линия</b>.<br>
+      · 250 Гц: $\operatorname{round}(250/250)=1$, значит $|250-250|=\mathbf{0}$ Гц — превратилась
+        в <b>постоянную составляющую</b>, то есть в дрейф изолинии.<br>
+      · 350 Гц: $\operatorname{round}(350/250)=1$, значит $|350-250|=\mathbf{100}$ Гц — сюда же,
+        где уже сидит 150-я.<br>
+      · 450 Гц: $\operatorname{round}(450/250)=2$, значит $|450-500|=\mathbf{50}$ Гц — легла на настоящую 50-ю.<br>
+      Итог: две гармоники сложились на 100 Гц, одна стала нулём, одна усилила сеть.
+      Всё это — в полосе, где живёт ЭМГ, и режекторным фильтром на 50 Гц уже не лечится.
+    </div>
+
+    <div class="tip" style="margin-bottom:4px"><b>Порядок счёта, 3 шага.</b>
+      (1) выписать новую частоту Найквиста $F_{д2}/2$;
+      (2) для каждой заметной линии сигнала посчитать $f_{\text{нов}}$ по формуле гармошки;
+      (3) решить, какой срез должен быть у анти-алиасного ФНЧ, чтобы всё лишнее осталось
+      снаружи <b>до</b> прореживания.</div>
+  </div>
+</details>
+
+<!-- ============ ВИДЖЕТ 1: ПОНИЖЕНИЕ ============ -->
+<div class="lab">
+  <h3>Пример 1 · Понижаем частоту: с анти-алиасным фильтром и без него</h3>
+  <p style="margin-top:2px">Сигнал — синтетическая
+  <span class="term" data-tip="Интерференционная ЭМГ: сумма разрядов многих двигательных единиц. Выглядит как шум со «звоном» в полосе примерно 20–250 Гц.">интерференционная ЭМГ</span>
+  на 1000 Гц плюс гребёнка сетевой наводки: 50 Гц и её нечётные гармоники.
+  Понижаем частоту двумя путями сразу — <b>честным</b> (сначала ФНЧ, потом каждый $q$-й
+  отсчёт) и <b>наивным</b> (просто каждый $q$-й) — и сравниваем спектры.</p>
+  <canvas id="dBefore" class="scope" width="840" height="180"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--muted)"></span>исходный спектр, 1000 Гц</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span>сеть и гармоники</span>
+    <span><span class="sw" style="border-color:var(--ok); border-top-style:dotted"></span>срез анти-алиасного ФНЧ</span>
+  </div>
+  <canvas id="dAfter" class="scope" width="840" height="200"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span>ФНЧ, затем прореживание</span>
+    <span><span class="sw" style="border-color:#d93025"></span>просто каждый $q$-й отсчёт</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Во сколько раз понижаем частоту дискретизации.">Множитель $q$</span></label><input type="range" id="d_q" min="2" max="8" step="1" value="4"><span class="val" id="d_qv">4</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда сетевой наводки относительно СКЗ самой ЭМГ. 0 — идеально чистая запись, 1 — наводка вровень с сигналом.">Наводка</span></label><input type="range" id="d_m" min="0" max="1.2" step="0.05" value="0.6"><span class="val" id="d_mv">0,60</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Затухание анти-алиасного фильтра в полосе задерживания. Чем больше, тем длиннее фильтр: длина растёт линейно с затуханием в децибелах.">Затухание ФНЧ</span></label><input type="range" id="d_a" min="30" max="90" step="5" value="60"><span class="val" id="d_av">60 дБ</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Срез анти-алиасного ФНЧ в долях от новой частоты Найквиста. 0,90 означает срез на 112,5 Гц при Найквисте 125 Гц.">Срез, доля $F_{д2}/2$</span></label><input type="range" id="d_c" min="0.6" max="0.98" step="0.01" value="0.90"><span class="val" id="d_cv">0,90</span></div>
+  </div>
+  <div class="readout" id="d_out1"></div>
+  <div class="readout" id="d_out2"></div>
+  <div class="note" style="margin-top:12px"><b>Что должно получиться на настройках по
+    умолчанию</b> ($q=4$, наводка 0,60, 60 дБ, срез 0,90): анти-алиасный ФНЧ — <b>163</b>
+    коэффициента при срезе <b>112,5 Гц</b>, запись 4096 → 1024 отсчёта; чистая ЭМГ без наводки
+    даёт <span class="term" data-tip="Медианная частота: делит площадь под спектром пополам. Стандартный показатель утомления мышцы — при утомлении он ползёт вниз.">MDF</span>
+    <b>75,2 Гц</b> честным путём и <b>89,6 Гц</b> наивным, то есть <b>+19 %</b> из ничего;
+    на 100 Гц наивный путь даёт линию в <b>4,4 раза</b> выше (0,468 против 0,107), а на 0 Гц —
+    0,548 против почти нуля. Расхождение двух путей по СКЗ — <b>90 %</b>: наивная запись
+    отличается от честной почти на собственную величину сигнала.
+    <br><b>И честно, два уточнения.</b> Первое: линия 50 Гц остаётся в <b>обоих</b> путях.
+    Она лежит внутри новой полосы, анти-алиасный фильтр её не трогает — это работа
+    режекторного фильтра из E3. Прореживание не заменяет фильтрацию наводки и не мешает ей.
+    Второе: Python-версия работы печатает близкие, но не совпадающие до цифры числа
+    (MDF 75,7 → 83,8 Гц, расхождение 70 %). Сигнал там синтезируется другим генератором
+    случайных чисел — это другая реализация той же модели, а не другой результат.</div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Оставь всё по умолчанию. Найди на нижнем графике частоту, где красная кривая
+          выше синей сильнее всего. Сверь её с карты наложения из блока выше — совпало?</li>
+      <li>Поставь наводку в 0. Линии исчезли, но красная кривая всё равно идёт выше синей
+          в верхней части полосы. Откуда там энергия, если наводки нет?</li>
+      <li>Веди $q$ от 2 до 8 и выпиши ошибку MDF на каждом шаге. Она растёт монотонно?
+          При $q=8$ знак ошибки меняется — объясни, почему наложение может и <i>занижать</i>
+          медианную частоту, а не только завышать.</li>
+      <li>Сузь срез до 0,6 при $q=4$. Наложение исчезло совсем — но что стало с самой ЭМГ
+          и с её MDF? Почему срез не делают маленьким «на всякий случай»?</li>
+      <li>Подними затухание с 30 до 90 дБ и запиши длину фильтра. Это линейный рост или нет?
+          Сравни с формулой $N\approx(A-8)/(2{,}285\,\Delta\omega)$.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2: ПОВЫШЕНИЕ ============ -->
+<div class="lab">
+  <h3>Пример 2 · Повышаем частоту: откуда берутся копии спектра</h3>
+  <p style="margin-top:2px">Теперь наоборот. Есть запись на 250 Гц, а нужна на
+  $p\cdot250$ Гц. Между отсчётами вставляем $p-1$ нулей — отсчётов стало в $p$ раз больше,
+  но сигнал от этого не появился. Что реально произошло, видно только в спектре: в нём
+  возникли <b>копии</b> исходного спектра вокруг каждого кратного старой частоты $F_{д1}$.
+  Их убирает ФНЧ, а потерянную в $p$ раз амплитуду возвращает умножение на $p$.</p>
+  <canvas id="uZero" class="scope" width="840" height="180"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:#d93025"></span>сразу после вставки нулей</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span>центры копий: $k\cdot F_{д1}$</span>
+  </div>
+  <canvas id="uAfter" class="scope" width="840" height="180"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span>после ФНЧ и умножения на $p$</span>
+    <span><span class="sw" style="border-color:var(--ok); border-top-style:dotted"></span>полезная полоса кончается на $F_{д1}/2$</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Во сколько раз повышаем частоту дискретизации. При p = 4 из 250 Гц получается 1000 Гц.">Множитель $p$</span></label><input type="range" id="u_p" min="2" max="8" step="1" value="4"><span class="val" id="u_pv">4</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Затухание анти-имиджингового ФНЧ. Ровно на столько будут подавлены копии спектра.">Затухание ФНЧ</span></label><input type="range" id="u_a" min="30" max="90" step="5" value="60"><span class="val" id="u_av">60 дБ</span></div>
+  </div>
+  <div class="readout" id="u_out"></div>
+  <div class="note" style="margin-top:12px"><b>Что должно получиться при $p=4$ и 60 дБ:</b>
+    1024 отсчёта превращаются в 4096, в полосе до 500 Гц стоят <b>две</b> копии спектра —
+    вокруг 250 и 500 Гц, — и после фильтра они падают примерно на <b>78 дБ</b>. Это
+    <i>глубже</i> заказанных 60: фильтр здесь работает вперёд-назад, то есть затухание
+    удваивается, а вдали от среза окно Кайзера давит куда сильнее номинала. Поэтому,
+    сдвинув ползунок затухания с 30 на 90 дБ, ты увидишь, что длина фильтра выросла
+    с 71 до 255 коэффициентов, а образы сдвинулись всего на 4–5 дБ. Заказанное
+    затухание — это <b>гарантия снизу у края полосы задерживания</b>, а не точное
+    значение по всей полосе; вдобавок на этой глубине упирается уже сама оценка
+    спектра — утечка окна не даёт разглядеть, что там на самом деле.
+    Полезная полоса при этом не расширяется: выше 125 Гц как не было ничего, так и нет.
+    <b>Интерполяция не добавляет информации</b> — она только перекладывает уже имеющуюся
+    на более частую сетку.</div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Посчитай, сколько копий спектра помещается в полосе до $p\cdot250/2$ Гц при
+          $p=2,4,8$. Выведи формулу для произвольного $p$.</li>
+      <li>Веди затухание от 30 до 90 дБ и выпиши длину фильтра и уровень образов. Длина
+          растёт втрое, уровень образов почти не меняется. Почему заказанные децибелы
+          не переводятся напрямую в подавление образа?</li>
+      <li>Убери ФНЧ мысленно: что будет с сигналом во временной области, если оставить
+          вставленные нули как есть? Почему такой сигнал нельзя подавать на классификатор?</li>
+      <li>Верхняя граница полезной полосы не выросла ни на герц. Сформулируй в отчёте одной
+          фразой, зачем тогда вообще повышают частоту.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 3: p/q ============ -->
+<div class="lab">
+  <h3>Пример 3 · Дробный множитель: свести два датасета к общей частоте</h3>
+  <p style="margin-top:2px">Реальная задача выглядит так: одну запись делали на 5120 Гц,
+  вторую на 2048, третью на 200, а обучать надо одну модель. Целое число здесь не поможет —
+  нужен дробный множитель. Берём отношение частот и сокращаем его на
+  <span class="term" data-tip="НОД — наибольший общий делитель. Сокращение дроби на НОД даёт минимальные p и q, а значит самый дешёвый пересчёт.">НОД</span>:</p>
+  \[ \frac{p}{q}=\frac{F_{д2}}{F_{д1}}\ \ \text{после сокращения на } \gcd(F_{д1},F_{д2}). \]
+  <p style="margin:6px 0">Сначала интерполяция в $p$ раз, потом децимация в $q$ раз — именно
+  в этом порядке, иначе децимация выбросит то, что интерполяция ещё не успела восстановить.
+  Оба фильтра при этом объединяют в один: его срез — <b>меньшая</b> из двух частот Найквиста.</p>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Частота дискретизации исходной записи.">Было $F_{д1}$</span></label><input type="range" id="r_a" min="0" max="6" step="1" value="1"><span class="val" id="r_av">2048 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Частота дискретизации, к которой приводим.">Надо $F_{д2}$</span></label><input type="range" id="r_b" min="0" max="6" step="1" value="4"><span class="val" id="r_bv">1000 Гц</span></div>
+  </div>
+  <div class="readout" id="r_out"></div>
+  <div class="readout" id="r_out2"></div>
+  <div class="note" style="margin-top:12px"><b>Три реальных случая:</b>
+    5120 → 1000 Гц даёт $p/q=25/128$; 2048 → 1000 Гц даёт $125/256$; 200 → 1000 Гц даёт
+    $5/1$ — чистая интерполяция без прореживания. В последнем случае частота выросла в пять
+    раз, а полоса сигнала осталась прежней: выше 100 Гц там по-прежнему пусто, и никакой
+    пересчёт этого не исправит. Python-версия проверяет это по MDF: при пересчёте
+    2048 → 1000 Гц медианная частота меняется на <b>0,1 %</b>, то есть сигнал не пострадал.</div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Перебери все пары частот и найди ту, у которой $p\cdot q$ максимально. Почему
+          большое произведение — это плохо с точки зрения вычислений?</li>
+      <li>Для своей пары из таблицы вариантов посчитай $p$ и $q$ <b>на бумаге</b> через НОД
+          и сверь с виджетом.</li>
+      <li>Какой срез должен быть у общего фильтра при 5120 → 1000 Гц? А при 200 → 1000?
+          Объясни, почему во втором случае фильтр вообще ничего не режет.</li>
+      <li>Датасет писали на 200 Гц. Можно ли по нему изучать спектр ЭМГ до 250 Гц, если
+          пересчитать запись на 1000 Гц? Ответ обоснуй одной фразой.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Возьми свой номер и выполни обе части. Исходная запись везде на
+  $F_{д1}=1000$ Гц, в ней сеть 50 Гц и её нечётные гармоники до 450 Гц.</p>
+  <p style="margin:6px 0"><b>Часть А — карта наложения (на бумаге).</b> Для своей $F_{д2}$
+  посчитай по формуле гармошки, куда упадёт каждая из пяти линий 50, 150, 250, 350, 450 Гц.
+  <b>Запиши в отчёт</b>: (а) новую частоту Найквиста; (б) таблицу «было → стало»;
+  (в) какие линии наложились друг на друга и какая превратилась в постоянную составляющую.
+  Потом поставь свою $F_{д2}$ в первом виджете и сверь.</p>
+  <p style="margin:6px 0"><b>Часть Б — два пути и дробный пересчёт (виджеты).</b>
+  <b>Запиши</b>: (г) длину анти-алиасного ФНЧ и его срез; (д) MDF честного и наивного пути
+  и ошибку в процентах; (е) свои $p$ и $q$ для пары частот из последней колонки, посчитанные
+  через НОД, и срез общего фильтра.</p>
+  <table>
+    <tr><th>Вариант</th><th>$F_{д2}$</th><th>$q$</th><th>$p$ для примера 2</th><th>Пара частот для $p/q$</th></tr>
+    <tr><td>1</td><td>500 Гц</td><td>2</td><td>2</td><td>4000 → 1000 Гц</td></tr>
+    <tr><td>2</td><td>250 Гц</td><td>4</td><td>4</td><td>2048 → 1000 Гц</td></tr>
+    <tr><td>3</td><td>200 Гц</td><td>5</td><td>5</td><td>5120 → 1000 Гц</td></tr>
+    <tr><td>4</td><td>125 Гц</td><td>8</td><td>8</td><td>200 → 1000 Гц</td></tr>
+    <tr><td>5</td><td>333 Гц</td><td>3</td><td>3</td><td>2000 → 1000 Гц</td></tr>
+    <tr><td>6</td><td>167 Гц</td><td>6</td><td>6</td><td>1024 → 200 Гц</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Демонстрационный пример ($q=4$, наводка 0,60)
+  совпадает с вариантом 2 по частоте — но в отчёте нужны твои собственные числа со всех
+  трёх виджетов, а не переписанные из блока «что должно получиться».</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Понижение частоты дискретизации — это <b>две</b> операции, а не одна. Выбросить
+        каждый $q$-й отсчёт без анти-алиасного фильтра — значит впустить в запись частоты,
+        которых в мышце не было.</li>
+    <li>Куда именно упадёт частота, считается одной формулой гармошки. Наложение
+        <b>необратимо</b>: после прореживания различить исходную частоту нечем.</li>
+    <li>Наложение и сетевая наводка — разные болезни. Анти-алиасный фильтр не лечит 50 Гц,
+        если она внутри новой полосы; режекторный фильтр не лечит наложение.</li>
+    <li>Повышение частоты добавляет отсчёты, но не информацию. Копии спектра — это
+        артефакт вставки нулей, и ФНЧ давит их ровно на заказанное затухание.</li>
+    <li>Любые две частоты сводятся дробью $p/q$ после сокращения на НОД. Порядок строгий:
+        сначала вверх в $p$ раз, потом вниз в $q$.</li>
+  </ul>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Выведите формулу гармошки из равенства отсчётов $\cos(2\pi f n/F_д)$ и
+          $\cos(2\pi(f+F_д)n/F_д)$.</li>
+      <li>Почему наложение спектров нельзя убрать фильтром <i>после</i> прореживания?</li>
+      <li>Куда упадёт частота 350 Гц при понижении с 1000 до 250 Гц? А 250 Гц?</li>
+      <li>Каким должен быть срез анти-алиасного ФНЧ и почему его не ставят точно
+          на $F_{д2}/2$?</li>
+      <li>Что происходит со спектром при вставке нулей и почему копии стоят именно
+          на кратных $F_{д1}$?</li>
+      <li>Зачем после анти-имиджингового фильтра умножают сигнал на $p$?</li>
+      <li>Как найти $p$ и $q$ для пересчёта 5120 Гц в 1000 Гц? Какой срез у общего фильтра?</li>
+      <li>Почему интерполяция в 5 раз не позволяет изучать спектр выше исходного Найквиста?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный скрипт <code>solution.py</code> делает то же самое
+    через <code>scipy.signal</code>: <code>kaiserord</code>+<code>firwin</code> для обоих
+    фильтров, ручная вставка нулей для интерполяции и <code>resample_poly</code> для дробного
+    пересчёта. Для работы он не нужен — всё важное есть в примерах выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 завершена · дальше: часть 2 — E6 — формирование признаков ЭМГ
+</p>
+
+</div>
+
+<script>
+  /* ---------- маленькая общая библиотека: БПФ ---------- */
+  var DSP = (function(){
+    function fft(re, im){
+      var n = re.length, i, j, bit, len, ang, wr, wi, k, t;
+      for(i=1, j=0; i<n; i++){
+        bit = n >> 1;
+        for(; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if(i < j){ t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; }
+      }
+      for(len=2; len<=n; len<<=1){
+        ang = -2*Math.PI/len; wr = Math.cos(ang); wi = Math.sin(ang);
+        for(i=0; i<n; i+=len){
+          var cr=1, ci=0;
+          for(k=0; k<len/2; k++){
+            var ur=re[i+k], ui=im[i+k];
+            var xr=re[i+k+len/2], xi=im[i+k+len/2];
+            var vr = xr*cr - xi*ci, vi = xr*ci + xi*cr;
+            re[i+k]=ur+vr; im[i+k]=ui+vi;
+            re[i+k+len/2]=ur-vr; im[i+k+len/2]=ui-vi;
+            var ncr = cr*wr - ci*wi; ci = cr*wi + ci*wr; cr = ncr;
+          }
+        }
+      }
+    }
+    // обратное БПФ через сопряжение
+    function ifft(re, im){
+      var n = re.length, i;
+      for(i=0;i<n;i++) im[i] = -im[i];
+      fft(re, im);
+      for(i=0;i<n;i++){ re[i] /= n; im[i] = -im[i]/n; }
+    }
+    return { fft: fft, ifft: ifft };
+  })();
+
+  /* ---------- КИХ-фильтры методом окна Кайзера ---------- */
+  var FIR = (function(){
+    // модифицированная функция Бесселя I0 — рядом, 30 членов хватает с запасом
+    function i0(x){
+      var s = 1, t = 1, k;
+      for(k=1;k<30;k++){ t *= (x/2)/k; s += t*t; }
+      return s;
+    }
+    // параметр beta окна Кайзера по требуемому затуханию A, дБ
+    function beta(A){
+      if(A > 50)       return 0.1102*(A - 8.7);
+      if(A >= 21)      return 0.5842*Math.pow(A - 21, 0.4) + 0.07886*(A - 21);
+      return 0;
+    }
+    // длина фильтра: width — переходная полоса, нормированная на Найквиста
+    function taps(A, width){
+      var dw = width*Math.PI;
+      var n = Math.ceil((A - 7.95)/(2.285*dw) + 1);
+      if(n % 2 === 0) n += 1;                       // нечётная длина: целая задержка
+      return n;
+    }
+    // ФНЧ: срез fc Гц при частоте дискретизации fs Гц
+    function lowpass(n, fc, fs, b){
+      var h = new Float64Array(n), M = n - 1, w, s = 0, i, t, arg;
+      var f = fc/fs, ib = i0(b);
+      for(i=0;i<n;i++){
+        t = i - M/2;
+        arg = 2*i/M - 1;
+        w = i0(b*Math.sqrt(Math.max(0, 1 - arg*arg)))/ib;
+        h[i] = ((Math.abs(t) < 1e-12) ? 2*f : Math.sin(2*Math.PI*f*t)/(Math.PI*t)) * w;
+        s += h[i];
+      }
+      for(i=0;i<n;i++) h[i] /= s;                   // единичный коэффициент передачи на нуле
+      return h;
+    }
+    // прямая свёртка (КИХ), выход той же длины
+    function filt(h, x){
+      var N = x.length, M = h.length, y = new Float64Array(N), i, k, acc;
+      for(i=0;i<N;i++){
+        acc = 0;
+        for(k=0; k<M; k++){ if(i-k >= 0) acc += h[k]*x[i-k]; }
+        y[i] = acc;
+      }
+      return y;
+    }
+    // вперёд-назад: нулевая фаза, никакого сдвига по времени (затухание при этом удваивается)
+    function filtfilt(h, x){
+      var n = x.length, y = filt(h, x), r = new Float64Array(n), i;
+      for(i=0;i<n;i++) r[i] = y[n-1-i];
+      var z = filt(h, r), o = new Float64Array(n);
+      for(i=0;i<n;i++) o[i] = z[n-1-i];
+      return o;
+    }
+    return { i0: i0, beta: beta, taps: taps, lowpass: lowpass, filt: filt, filtfilt: filtfilt };
+  })();
+
+  /* ---------- генератор сигнала: интерференционная ЭМГ и сетевая наводка ---------- */
+  var SIG = (function(){
+    function lcg(seed){
+      var s = seed >>> 0;
+      return function(){ s = (s*1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    }
+    // один ПДЕ — производная гауссианы длительностью ms миллисекунд
+    function muap(fs, ms){
+      var half = Math.max(2, Math.round(ms/1000*fs/2)), n = 2*half+1;
+      var sg = n/6, k = new Float64Array(n), mx = 0, i, t, v;
+      for(i=0;i<n;i++){
+        t = i - half;
+        v = -(t/(sg*sg)) * Math.exp(-t*t/(2*sg*sg));
+        k[i] = v; if(Math.abs(v) > mx) mx = Math.abs(v);
+      }
+      for(i=0;i<n;i++) k[i] /= mx;
+      return k;
+    }
+    // интерференционная ЭМГ: сумма разрядов нескольких двигательных единиц, СКЗ = 1
+    function emg(N, fs, seed, units){
+      var rnd = lcg(seed), x = new Float64Array(N + 64), k = muap(fs, 10), i, j, u;
+      for(u=0; u<(units || 12); u++){
+        var rate = 8 + 12*rnd(), amp = 0.5 + rnd(), step = fs/rate, pos = rnd()*step;
+        while(pos < N){
+          var at = Math.round(pos);
+          for(j=0;j<k.length && at+j < x.length;j++) x[at+j] += amp*k[j];
+          pos += step*(0.75 + 0.5*rnd());
+        }
+      }
+      var y = new Float64Array(N), acc = 0;
+      for(i=0;i<N;i++){ y[i] = x[i]; acc += x[i]*x[i]; }
+      var r = Math.sqrt(acc/N) || 1;
+      for(i=0;i<N;i++) y[i] /= r;
+      return y;
+    }
+    // сеть 50 Гц и её нечётные гармоники; амплитуда падает с номером
+    function mains(N, fs, level, list){
+      var m = new Float64Array(N), i, j, f;
+      for(j=0;j<list.length;j++){
+        f = list[j];
+        var a = level/(1 + 0.6*j), ph = 0.7*j;
+        for(i=0;i<N;i++) m[i] += a*Math.sin(2*Math.PI*f*i/fs + ph);
+      }
+      return m;
+    }
+    return { emg: emg, mains: mains, lcg: lcg };
+  })();
+
+  /* ---------- анализ: спектр, медианная частота, карта наложения ---------- */
+  var AN = (function(){
+    function nextPow2(n){ var p = 1; while(p < n) p <<= 1; return p; }
+    // модуль спектра с окном Хэмминга; возвращает половину с шагом fs/NFFT
+    function spectrum(x, fs){
+      var N = x.length, NFFT = nextPow2(N);
+      var re = new Float64Array(NFFT), im = new Float64Array(NFFT), i, w, s = 0;
+      for(i=0;i<N;i++){
+        w = 0.54 - 0.46*Math.cos(2*Math.PI*i/(N-1));
+        re[i] = x[i]*w; s += w;
+      }
+      DSP.fft(re, im);
+      var half = NFFT/2 + 1, mag = new Float64Array(half);
+      for(i=0;i<half;i++) mag[i] = 2*Math.sqrt(re[i]*re[i] + im[i]*im[i])/s;
+      return { mag: mag, df: fs/NFFT, fs: fs };
+    }
+    // уровень спектра на частоте f (ближайший отсчёт)
+    function at(sp, f){
+      var i = Math.round(f/sp.df);
+      if(i < 0 || i >= sp.mag.length) return 0;
+      return sp.mag[i];
+    }
+    // медианная частота в полосе [f1, f2]: делит площадь под спектром мощности пополам
+    function mdf(sp, f1, f2){
+      var i1 = Math.max(1, Math.round(f1/sp.df)), i2 = Math.min(sp.mag.length-1, Math.round(f2/sp.df));
+      var tot = 0, i;
+      for(i=i1;i<=i2;i++) tot += sp.mag[i]*sp.mag[i];
+      if(tot <= 0) return 0;
+      var acc = 0;
+      for(i=i1;i<=i2;i++){
+        acc += sp.mag[i]*sp.mag[i];
+        if(acc >= tot/2) return i*sp.df;
+      }
+      return i2*sp.df;
+    }
+    // куда упадёт частота f после понижения до fs2
+    function alias(f, fs2){ return Math.abs(f - fs2*Math.round(f/fs2)); }
+    function gcd(a, b){ while(b){ var t = a % b; a = b; b = t; } return a; }
+    function rms(x){ var s = 0, i; for(i=0;i<x.length;i++) s += x[i]*x[i]; return Math.sqrt(s/x.length); }
+    return { spectrum: spectrum, at: at, mdf: mdf, alias: alias, gcd: gcd, rms: rms,
+             nextPow2: nextPow2 };
+  })();
+
+  /* ---------- общие мелочи отрисовки ---------- */
+  function CSSV(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function FMT(x, d){ var p = Math.pow(10, d === undefined ? 2 : d);
+    return (Math.round(x*p)/p).toString().replace('.', ','); }
+  var HARM = [50, 150, 250, 350, 450];
+  var RED = '#d93025';
+
+  // рамка с осями для спектра: возвращает функции X(f) и Y(v)
+  function frame(ctx, W, H, fmax, vmax, ystep){
+    var line = CSSV('--line'), muted = CSSV('--muted');
+    var padL = 44, padR = 12, padT = 12, padB = 24, x0 = padL, y0 = H - padB;
+    function X(f){ return x0 + (f/fmax)*(W-padL-padR); }
+    function Y(v){ return y0 - (v/vmax)*(H-padT-padB); }
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(x0,padT); ctx.lineTo(x0,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+    ctx.fillStyle = muted; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    var stepF = Math.pow(10, Math.floor(Math.log(fmax)/Math.LN10));
+    if(fmax/stepF < 3) stepF /= 2; else if(fmax/stepF > 6) stepF *= 2;
+    for(var f=0; f<=fmax+1e-9; f+=stepF){
+      ctx.fillText(FMT(f, 0), X(f), H-7);
+      ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(X(f),padT); ctx.lineTo(X(f),y0); ctx.stroke();
+    }
+    ctx.textAlign = 'right';
+    for(var v=0; v<=vmax+1e-9; v+=ystep){
+      ctx.fillStyle = muted; ctx.fillText(FMT(v, 2), x0-5, Y(v)+4);
+      ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(x0,Y(v)); ctx.lineTo(W-padR,Y(v)); ctx.stroke();
+    }
+    ctx.textAlign = 'center'; ctx.fillStyle = muted;
+    ctx.fillText('частота, Гц', W-padR-42, H-7);
+    return { X: X, Y: Y, x0: x0, y0: y0, padT: padT, padR: padR };
+  }
+
+  function drawSpec(ctx, fr, sp, fmax, color, width){
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+    var n = Math.min(sp.mag.length - 1, Math.floor(fmax/sp.df)), i, first = true;
+    for(i=1;i<=n;i++){
+      var px = fr.X(i*sp.df), py = fr.Y(sp.mag[i]);
+      first ? (ctx.moveTo(px,py), first = false) : ctx.lineTo(px,py);
+    }
+    ctx.stroke();
+  }
+
+  function vline(ctx, fr, f, color, dash, label, H){
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2;
+    ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(fr.X(f), fr.padT); ctx.lineTo(fr.X(f), fr.y0); ctx.stroke();
+    ctx.setLineDash([]);
+    if(label){
+      ctx.fillStyle = color; ctx.font = '10px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText(label, fr.X(f)+3, fr.padT+10);
+    }
+  }
+
+  /* ---------- переключатель темы ---------- */
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    if(!btn) return;
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redraw) window.__redraw();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){ apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); });
+  })();
+
+  /* ---------- общий исходный сигнал для виджетов ---------- */
+  var FS1 = 1000, NSAMP = 4096;
+  var EMG_BASE = SIG.emg(NSAMP, FS1, 20260826, 12);
+
+  /* ---------- карта наложения ---------- */
+  (function(){
+    var aq = document.getElementById('a_q');
+    if(!aq) return;
+    var aqv = document.getElementById('a_qv'), af = document.getElementById('a_f'),
+        afv = document.getElementById('a_fv'), aout = document.getElementById('a_out'),
+        cv = document.getElementById('a_map');
+
+    function draw(q, ftest){
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0,0,W,H);
+      var fs2 = FS1/q, nyq = fs2/2;
+      var fr = frame(ctx, W, H, FS1/2, Math.max(nyq, 1), Math.max(nyq/4, 1));
+      // честная зона: до нового Найквиста частота не меняется
+      ctx.strokeStyle = CSSV('--ok'); ctx.lineWidth = 1.4; ctx.setLineDash([2,3]);
+      ctx.beginPath(); ctx.moveTo(fr.X(0), fr.Y(0)); ctx.lineTo(fr.X(nyq), fr.Y(nyq)); ctx.stroke();
+      ctx.setLineDash([]);
+      // сама гармошка
+      ctx.strokeStyle = CSSV('--accent'); ctx.lineWidth = 2.1; ctx.beginPath();
+      for(var px = fr.x0; px <= W - fr.padR; px += 1){
+        var f = (px - fr.x0)/(W - fr.x0 - fr.padR)*(FS1/2);
+        var y = fr.Y(AN.alias(f, fs2));
+        (px === fr.x0) ? ctx.moveTo(px, y) : ctx.lineTo(px, y);
+      }
+      ctx.stroke();
+      // сеть и гармоники
+      ctx.font = '10px sans-serif';
+      for(var i=0;i<HARM.length;i++){
+        var f0 = HARM[i], a0 = AN.alias(f0, fs2);
+        ctx.fillStyle = CSSV('--warn');
+        ctx.beginPath(); ctx.arc(fr.X(f0), fr.Y(a0), 3.5, 0, 2*Math.PI); ctx.fill();
+        ctx.textAlign = 'center';
+        ctx.fillText(FMT(f0,0) + '→' + FMT(a0,0), fr.X(f0), fr.Y(a0) - 7);
+      }
+      // пробная частота
+      var at = AN.alias(ftest, fs2);
+      ctx.strokeStyle = RED; ctx.lineWidth = 1.2; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(fr.X(ftest), fr.y0); ctx.lineTo(fr.X(ftest), fr.Y(at)); ctx.lineTo(fr.x0, fr.Y(at)); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = RED;
+      ctx.beginPath(); ctx.arc(fr.X(ftest), fr.Y(at), 4.5, 0, 2*Math.PI); ctx.fill();
+      return at;
+    }
+
+    function update(){
+      var q = +aq.value, ftest = +af.value, fs2 = FS1/q, nyq = fs2/2;
+      aqv.textContent = q + '';
+      afv.textContent = ftest + ' Гц';
+      var at = draw(q, ftest);
+      var safe = ftest < nyq;
+      aout.className = safe ? 'readout ok' : 'readout bad';
+      var lost = [];
+      for(var i=0;i<HARM.length;i++) if(HARM[i] >= nyq) lost.push(HARM[i] + '→' + FMT(AN.alias(HARM[i], fs2), 0));
+      aout.innerHTML =
+        'F<sub>д2</sub> = <span class="big">' + FMT(fs2, 1) + ' Гц</span>, новый Найквист ' +
+        FMT(nyq, 1) + ' Гц. Пробная ' + ftest + ' Гц попадёт на <span class="big">' +
+        FMT(at, 1) + ' Гц</span>. ' +
+        (safe ? 'Она ниже Найквиста — останется собой.'
+              : 'Она выше Найквиста — превратится в чужую частоту, и это необратимо.') +
+        (lost.length ? ' Наложатся: ' + lost.join(', ') + '.' : ' Ни одна гармоника сети не наложится.');
+    }
+    aq.addEventListener('input', update);
+    af.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 1: понижение частоты, два пути ---------- */
+  (function(){
+    var dq = document.getElementById('d_q');
+    if(!dq) return;
+    var dqv = document.getElementById('d_qv'), dm = document.getElementById('d_m'),
+        dmv = document.getElementById('d_mv'), da = document.getElementById('d_a'),
+        dav = document.getElementById('d_av'), dc = document.getElementById('d_c'),
+        dcv = document.getElementById('d_cv');
+    var out1 = document.getElementById('d_out1'), out2 = document.getElementById('d_out2');
+    var cB = document.getElementById('dBefore'), cA = document.getElementById('dAfter');
+
+    // считает оба пути; clean = true — та же ЭМГ, но без наводки
+    function paths(q, level, A, cfrac){
+      var fs2 = FS1/q, fc = cfrac*fs2/2;
+      var width = 0.2*fc/(FS1/2);
+      var n = FIR.taps(A, width), b = FIR.beta(A);
+      var h = FIR.lowpass(n, fc, FS1, b);
+      function run(x){
+        var f = FIR.filtfilt(h, x), M = Math.floor(x.length/q), i;
+        var good = new Float64Array(M), naive = new Float64Array(M);
+        for(i=0;i<M;i++){ good[i] = f[i*q]; naive[i] = x[i*q]; }
+        return { good: good, naive: naive };
+      }
+      var mm = SIG.mains(NSAMP, FS1, level, HARM);
+      var withM = new Float64Array(NSAMP), i;
+      for(i=0;i<NSAMP;i++) withM[i] = EMG_BASE[i] + mm[i];
+      return { fs2: fs2, fc: fc, taps: n, beta: b,
+               dirty: run(withM), clean: run(EMG_BASE), raw: withM };
+    }
+
+    function drawBefore(P, level){
+      var ctx = cB.getContext('2d'), W = cB.width, H = cB.height;
+      ctx.clearRect(0,0,W,H);
+      var sp = AN.spectrum(P.raw, FS1), i, vmax = 0;
+      for(i=1;i<sp.mag.length;i++) if(sp.mag[i] > vmax) vmax = sp.mag[i];
+      vmax *= 1.1;
+      var fr = frame(ctx, W, H, FS1/2, vmax, vmax/2);
+      if(level > 0) for(i=0;i<HARM.length;i++) vline(ctx, fr, HARM[i], CSSV('--warn'), [3,3], null, H);
+      drawSpec(ctx, fr, sp, FS1/2, CSSV('--muted'), 1.0);
+      vline(ctx, fr, P.fc, CSSV('--ok'), [2,3], 'срез ' + FMT(P.fc,1), H);
+      vline(ctx, fr, P.fs2/2, CSSV('--accent'), [6,3], 'нов. Найквист', H);
+    }
+
+    function drawAfter(P){
+      var ctx = cA.getContext('2d'), W = cA.width, H = cA.height;
+      ctx.clearRect(0,0,W,H);
+      var sg = AN.spectrum(P.dirty.good, P.fs2), sn = AN.spectrum(P.dirty.naive, P.fs2);
+      var i, vmax = 0;
+      for(i=1;i<sn.mag.length;i++) if(sn.mag[i] > vmax) vmax = sn.mag[i];
+      for(i=1;i<sg.mag.length;i++) if(sg.mag[i] > vmax) vmax = sg.mag[i];
+      vmax *= 1.1;
+      var fr = frame(ctx, W, H, P.fs2/2, vmax, vmax/2);
+      drawSpec(ctx, fr, sn, P.fs2/2, RED, 1.4);
+      drawSpec(ctx, fr, sg, P.fs2/2, CSSV('--accent'), 1.6);
+      return { sg: sg, sn: sn };
+    }
+
+    function update(){
+      var q = +dq.value, level = +dm.value, A = +da.value, cfrac = +dc.value;
+      dqv.textContent = q + '';
+      dmv.textContent = FMT(level, 2);
+      dav.textContent = A + ' дБ';
+      dcv.textContent = FMT(cfrac, 2);
+
+      var P = paths(q, level, A, cfrac);
+      drawBefore(P, level);
+      var S = drawAfter(P);
+
+      // (а) чистая ЭМГ: сравниваем MDF двух путей — сюда наводка не вмешивается
+      var nyq = P.fs2/2;
+      var cg = AN.spectrum(P.clean.good, P.fs2), cn = AN.spectrum(P.clean.naive, P.fs2);
+      var mg = AN.mdf(cg, 20, nyq), mn = AN.mdf(cn, 20, nyq);
+      var errM = mg > 0 ? (mn - mg)/mg*100 : 0;
+
+      out1.className = 'readout';
+      out1.innerHTML =
+        'F<sub>д2</sub> = <span class="big">' + FMT(P.fs2,1) + ' Гц</span>, анти-алиасный ФНЧ: срез ' +
+        FMT(P.fc,1) + ' Гц, <span class="big">' + P.taps + '</span> коэффициентов (β = ' +
+        FMT(P.beta,2) + '), ' + NSAMP + ' → ' + P.dirty.good.length + ' отсчётов. ' +
+        'Чистая ЭМГ, MDF в полосе 20–' + FMT(nyq,0) + ' Гц: честный путь <span class="big">' +
+        FMT(mg,1) + ' Гц</span>, наивный <span class="big">' + FMT(mn,1) + ' Гц</span> (' +
+        (errM >= 0 ? '+' : '') + FMT(errM,1) + ' %).';
+
+      // (б) с наводкой: смотрим на конкретные линии, которых честный путь не создаёт
+      var target = AN.alias(150, P.fs2), zero = AN.alias(250, P.fs2);
+      var lg = AN.at(S.sg, target), ln = AN.at(S.sn, target);
+      var zg = AN.at(S.sg, zero),   zn = AN.at(S.sn, zero);
+      var i, d = 0, s = 0;
+      for(i=0;i<P.dirty.good.length;i++){ var e = P.dirty.naive[i] - P.dirty.good[i]; d += e*e; s += P.dirty.good[i]*P.dirty.good[i]; }
+      var rel = s > 0 ? Math.sqrt(d/s)*100 : 0;
+
+      out2.className = (Math.abs(errM) < 5 && rel < 20) ? 'readout ok' : 'readout bad';
+      out2.innerHTML =
+        'Линии от наложения: на ' + FMT(target,1) + ' Гц (сюда падает 150 Гц) наивный путь даёт ' +
+        '<span class="big">' + FMT(ln,3) + '</span> против ' + FMT(lg,3) + ' у честного' +
+        (lg > 1e-9 ? ' — в ' + FMT(ln/lg,1) + ' раза больше' : '') + '. ' +
+        'На ' + FMT(zero,1) + ' Гц (сюда падает 250 Гц): ' + FMT(zn,3) + ' против ' + FMT(zg,3) + '. ' +
+        'Расхождение двух путей по СКЗ — <span class="big">' + FMT(rel,1) + ' %</span>. ' +
+        (rel < 20 ? 'Наложение почти не портит запись.'
+                  : 'Наивный путь заметно испортил запись, и обратно это не отыграть.');
+    }
+    ['d_q','d_m','d_a','d_c'].forEach(function(id){
+      document.getElementById(id).addEventListener('input', update); });
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 2: повышение частоты и спектральные образы ---------- */
+  (function(){
+    var up = document.getElementById('u_p');
+    if(!up) return;
+    var upv = document.getElementById('u_pv'), ua = document.getElementById('u_a'),
+        uav = document.getElementById('u_av'), uout = document.getElementById('u_out');
+    var cZ = document.getElementById('uZero'), cA = document.getElementById('uAfter');
+
+    // исходник для этого виджета — та же ЭМГ, честно опущенная до 250 Гц
+    var SRC = (function(){
+      var fc = 0.9*125, width = 0.2*fc/(FS1/2);
+      var n = FIR.taps(60, width), h = FIR.lowpass(n, fc, FS1, FIR.beta(60));
+      var f = FIR.filtfilt(h, EMG_BASE), M = Math.floor(NSAMP/4), y = new Float64Array(M), i;
+      for(i=0;i<M;i++) y[i] = f[i*4];
+      return y;
+    })();
+    var FS_SRC = 250;
+
+    function update(){
+      var p = +up.value, A = +ua.value, fsOut = FS_SRC*p;
+      upv.textContent = p + '';
+      uav.textContent = A + ' дБ';
+
+      // вставка нулей
+      var M = SRC.length, N = M*p, z = new Float64Array(N), i;
+      for(i=0;i<M;i++) z[i*p] = SRC[i];
+      // анти-имиджинговый ФНЧ на новой частоте дискретизации + усиление в p раз
+      var fc = 0.9*FS_SRC/2, width = 0.2*fc/(fsOut/2);
+      var taps = FIR.taps(A, width), h = FIR.lowpass(taps, fc, fsOut, FIR.beta(A));
+      var y = FIR.filtfilt(h, z);
+      for(i=0;i<N;i++) y[i] *= p;
+
+      var sz = AN.spectrum(z, fsOut), sy = AN.spectrum(y, fsOut);
+      var fmax = fsOut/2;
+
+      function panel(cv, sp, color, marks){
+        var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+        ctx.clearRect(0,0,W,H);
+        var vmax = 0, i;
+        for(i=1;i<sp.mag.length;i++) if(sp.mag[i] > vmax) vmax = sp.mag[i];
+        vmax = vmax*1.1 + 1e-9;
+        var fr = frame(ctx, W, H, fmax, vmax, vmax/2);
+        if(marks) for(var k=1; k*FS_SRC <= fmax; k++)
+          vline(ctx, fr, k*FS_SRC, CSSV('--warn'), [3,3], k + '·Fд1', H);
+        vline(ctx, fr, FS_SRC/2, CSSV('--ok'), [2,3], null, H);
+        drawSpec(ctx, fr, sp, fmax, color, 1.4);
+        return vmax;
+      }
+      panel(cZ, sz, RED, true);
+      panel(cA, sy, CSSV('--accent'), false);
+
+      // подавление образов: максимум спектра выше первого «провала» до и после
+      function peakAbove(sp, f1){
+        var i1 = Math.round(f1/sp.df), i, mx = 0;
+        for(i=i1;i<sp.mag.length;i++) if(sp.mag[i] > mx) mx = sp.mag[i];
+        return mx;
+      }
+      function peakBelow(sp, f2){
+        var i2 = Math.min(sp.mag.length-1, Math.round(f2/sp.df)), i, mx = 0;
+        for(i=1;i<=i2;i++) if(sp.mag[i] > mx) mx = sp.mag[i];
+        return mx;
+      }
+      // считаем от края полосы задерживания фильтра: там его затухание худшее,
+      // дальше по частоте окно Кайзера давит куда сильнее номинала
+      var fstop = fc*1.2;
+      var base = peakBelow(sy, FS_SRC/2);
+      var imgBefore = peakAbove(sz, fstop), baseZ = peakBelow(sz, FS_SRC/2);
+      var dbBefore = 20*Math.log10((imgBefore/baseZ) + 1e-15);
+      var imgAfter = peakAbove(sy, fstop);
+      var dbAfter = 20*Math.log10((imgAfter/base) + 1e-15);
+
+      uout.className = (dbAfter < -40) ? 'readout ok' : 'readout bad';
+      uout.innerHTML =
+        'p = <span class="big">' + p + '</span>: ' + M + ' → ' + N + ' отсчётов, ' +
+        FS_SRC + ' → <span class="big">' + fsOut + ' Гц</span>. ' +
+        'Копий спектра в полосе: <span class="big">' + Math.floor(fmax/FS_SRC) + '</span>. ' +
+        'Анти-имиджинговый ФНЧ: срез ' + FMT(fc,1) + ' Гц, ' + taps + ' коэффициентов. ' +
+        'Уровень образов относительно полезной полосы: <span class="big">' +
+        FMT(dbBefore,1) + ' дБ</span> до фильтра и <span class="big">' + FMT(dbAfter,1) +
+        ' дБ</span> после — ' +
+        ((-dbAfter > A)
+          ? 'это глубже заказанных ' + A + ' дБ: фильтр работает вперёд-назад, да и вдали от среза окно Кайзера давит сильнее номинала. '
+          : 'заказано было ' + A + ' дБ. ') +
+        'Полезная полоса как кончалась на ' + (FS_SRC/2) + ' Гц, так и кончается.';
+    }
+    up.addEventListener('input', update);
+    ua.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 3: дробный множитель p/q ---------- */
+  (function(){
+    var ra = document.getElementById('r_a');
+    if(!ra) return;
+    var rav = document.getElementById('r_av'), rb = document.getElementById('r_b'),
+        rbv = document.getElementById('r_bv'), rout = document.getElementById('r_out'),
+        rout2 = document.getElementById('r_out2');
+    var RATES = [5120, 2048, 2000, 1024, 1000, 500, 200];
+
+    function update(){
+      var f1 = RATES[+ra.value], f2 = RATES[+rb.value];
+      rav.textContent = f1 + ' Гц';
+      rbv.textContent = f2 + ' Гц';
+      var g = AN.gcd(f1, f2), p = f2/g, q = f1/g;
+      var nyq = Math.min(f1, f2)/2;
+
+      rout.className = 'readout';
+      rout.innerHTML =
+        f1 + ' → ' + f2 + ' Гц: НОД = <span class="big">' + g + '</span>, значит p/q = ' +
+        '<span class="big">' + p + '/' + q + '</span> = ' + FMT(f2/f1, 4) + '. ' +
+        'Сначала вверх в ' + p + ' раз (промежуточная частота ' + (f1*p) + ' Гц), потом вниз в ' + q + '. ' +
+        'Общий ФНЧ: срез чуть ниже ' + FMT(nyq,1) + ' Гц — это меньший из двух Найквистов.';
+
+      var cost = p*q;
+      rout2.className = (cost <= 4096) ? 'readout ok' : 'readout bad';
+      var band = (f2 > f1)
+        ? 'Частота выросла, но полоса сигнала осталась прежней: выше ' + FMT(f1/2,1) +
+          ' Гц там по-прежнему пусто, и никакой пересчёт этого не исправит.'
+        : (f2 < f1
+            ? 'Частота упала: всё, что было выше ' + FMT(f2/2,1) +
+              ' Гц, придётся отрезать фильтром до прореживания — иначе оно наложится.'
+            : 'Частоты совпадают: пересчитывать нечего.');
+      rout2.innerHTML = 'Цена пересчёта p·q = <span class="big">' + cost + '</span>' +
+        (cost > 4096 ? ' — промежуточная частота ' + (f1*p) + ' Гц, это дорого: фильтр придётся считать на очень частой сетке. '
+                     : ' — вполне посильно. ') + band;
+    }
+    ra.addEventListener('input', update);
+    rb.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+</script>
+
+</body>
+</html>

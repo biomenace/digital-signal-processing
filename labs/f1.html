@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа F1 — Оценка спектра: окно, утечка и усреднение</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;}
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600; box-shadow:var(--shadow); transition:transform .15s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);}
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px; font-family:"SF Mono",Menlo,Consolas,monospace;}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px;}
+  .legend span{margin-right:16px; white-space:nowrap;}
+  .legend .sw{display:inline-block; width:18px; border-top:3px solid var(--accent);
+    margin-right:6px; vertical-align:middle;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 90px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line); background:var(--accent-soft);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа F1</span>
+  <h1>Оценка спектра: окно, утечка и усреднение</h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема, два интерактивных примера</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> в E2 мы посчитали спектр и увидели пики. Но БПФ считает спектр
+    не «сигнала», а <b>вырезанного из него куска</b>. У куска есть края — и края врут.
+    Насколько сильно врут, зависит от того, чем мы этот кусок вырезали: это и называется
+    <span class="term" data-tip="Окно (весовая функция): набор множителей, на которые умножают кусок сигнала перед БПФ. Прямоугольное окно — просто обрезать; окно Хэмминга — плавно свести края к нулю."><b>окном</b></span>.
+  </p>
+  <p style="margin-bottom:0">
+    Что ты поймёшь руками, двигая ползунки: почему ровная 50-герцовая
+    <span class="term" data-tip="Наводка от электросети: паразитный сигнал 50 Гц (и его гармоники 100, 150 Гц), который наводится на провода и электроды.">наводка от сети</span>
+    может размазаться на пол-спектра; что делает окно Хэмминга и <b>чем за это платят</b>;
+    и почему у ЭМГ один БПФ — плохая оценка, которую обязательно надо
+    <span class="term" data-tip="Усреднение периодограмм по нескольким окнам. Оценка становится гладкой и повторяемой — это метод Уэлча."><b>усреднять</b></span>.
+    Цель — не запустить код, а понять, почему у одного и того же сигнала спектр можно
+    получить очень разный.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">Мы никогда не берём «весь сигнал» — мы берём
+  <span class="term" data-tip="Длина окна L: сколько подряд идущих отсчётов уходит в одно БПФ.">$L$ отсчётов</span>
+  подряд. Математически это умножение на окно $w[n]$:</p>
+  \[ s_w[n] = s[n]\cdot w[n],\qquad n=0\ldots L-1. \]
+  <p>Прямоугольное окно — это $w[n]=1$, то есть «просто обрезать». Окно Хэмминга плавно
+  сводит края к нулю:</p>
+  \[ w[n] = 0{,}54 - 0{,}46\cos\!\left(\frac{2\pi n}{L-1}\right). \]
+  <p>Шаг частотной сетки, на которой БПФ выдаёт ответ:</p>
+  \[ \Delta f = \frac{F_д}{L}. \]
+  <p>Для шумоподобных сигналов (а ЭМГ именно такой) одно БПФ даёт очень «дёрганую»
+  оценку. Её усредняют по $K$ перекрывающимся окнам — это
+  <span class="term" data-tip="Метод Уэлча: сигнал режут на перекрывающиеся окна, для каждого считают периодограмму (квадрат модуля спектра) и всё усредняют."><b>метод Уэлча</b></span>:</p>
+  \[ \hat{S}(f) = \frac{1}{K}\sum_{k=1}^{K} \left|S_k(f)\right|^2 . \]
+  <p style="margin-bottom:0">Три факта, которые ты проверишь в виджете ниже:</p>
+  <ul style="margin-bottom:0">
+    <li>если в окно помещается <b>не целое число периодов</b> — одна линия размазывается
+        в широкую «юбку»; это <span class="term" data-tip="Утечка спектра: энергия одной частоты растекается по соседним из-за разрыва на стыке окна.">утечка спектра</span>;</li>
+    <li><b>окно Хэмминга</b> давит юбку на десятки децибел, но делает главный пик <b>шире</b>;</li>
+    <li><b>усреднение по $K$ окнам</b> уменьшает разброс оценки примерно в $\sqrt{K}$ раз.</li>
+  </ul>
+</div>
+
+<!-- ============ ПОЧЕМУ КУСОК СИГНАЛА ВРЁТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему кусок сигнала врёт — и что с этим делает окно<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Утечка — не «погрешность вычислений» и не шум. За ней стоит одна
+    очень конкретная мысль: <b>БПФ считает, что твой кусок повторяется по кругу</b>. Он мысленно
+    склеивает конец куска с его началом — и если там не сходится, в сигнале появляется
+    <b>скачок</b>, которого в реальности не было. А скачок — это широкий спектр.
+    Двигай ползунок <b>частоты тона</b> — и картинки ниже покажут механизм целиком.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Частота тона, который мы кладём в окно. Сетка БПФ здесь идёт через 5 Гц, поэтому 45, 50, 55 Гц попадают точно в узел, а 47,5 — ровно между.">Частота тона $f$</span></label><input type="range" id="w_f" min="40" max="60" step="0.25" value="50"><span class="val" id="w_fv">50 Гц</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Чем вырезаем кусок: прямоугольным окном (просто обрезать) или окном Хэмминга (плавно свести края к нулю).">Окно</span></label><input type="range" id="w_w" min="0" max="1" step="1" value="0"><span class="val" id="w_wv">прямоуг.</span></div>
+      </div>
+      <div class="readout ok" id="w_out"></div>
+      <div class="muted" style="margin-top:6px">Здесь $F_д=1000$ Гц, длина окна $L=200$ отсчётов.
+        Значит шаг сетки $\Delta f = 1000/200 = 5$ Гц ровно.</div>
+    </div>
+
+    <h3 style="margin-top:12px">Шаг 1. Что на самом деле уходит в БПФ</h3>
+    <p style="margin-top:2px">Синим — кусок сигнала, который мы вырезали. Оранжевым пунктиром —
+    форма окна. В БПФ уходит их произведение, а <b>стык</b> (конец куска, склеенный с его началом)
+    отмечен справа:</p>
+    <canvas id="w_time" class="scope" width="840" height="170"></canvas>
+    <div class="legend" style="margin-bottom:10px">
+      <span><span class="sw" style="border-color:var(--accent)"></span>кусок сигнала $s[n]\cdot w[n]$</span>
+      <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span>форма окна $w[n]$</span>
+      <span><span class="sw" style="border-color:var(--muted); border-top-style:dotted"></span>склейка конца с началом</span>
+    </div>
+
+    <p><b>Почему целое число периодов спасает.</b> Пусть в окне помещается ровно 10 периодов.
+    Тогда последний отсчёт продолжается первым без разрыва: склейка гладкая, никакого лишнего
+    скачка нет — и спектр честно показывает одну линию. Стоит взять 9,5 периода — конец окна
+    приходит в противофазе началу, на склейке образуется ступенька высотой в две амплитуды.
+    Этой ступеньки в сигнале не было, но БПФ её видит и <b>честно раскладывает её по частотам</b> —
+    вот откуда берётся широкая юбка вокруг пика.</p>
+    <p>Условие «целого числа периодов» записывается просто: частота должна попасть в узел сетки,</p>
+    \[ f = k\cdot\Delta f = k\cdot\frac{F_д}{L}, \qquad k \in \mathbb{Z}. \]
+
+    <h3>Шаг 2. Та же линия в спектре: с окном и без</h3>
+    <p style="margin-top:2px">Смотрим на спектр в
+    <span class="term" data-tip="Децибелы: логарифмическая шкала. −40 дБ означает уровень в 100 раз меньше пика, −60 дБ — в 1000 раз.">децибелах</span>,
+    чтобы увидеть не только пик, но и всё, что вокруг него:</p>
+    <canvas id="w_spec" class="scope" width="840" height="200"></canvas>
+    <div class="legend" style="margin-bottom:10px">
+      <span><span class="sw" style="border-color:var(--accent)"></span>прямоугольное окно</span>
+      <span><span class="sw" style="border-color:var(--ok)"></span>окно Хэмминга</span>
+      <span><span class="sw" style="border-color:var(--muted); border-top-style:dashed"></span>истинная частота тона</span>
+    </div>
+
+    <div class="formula-ex">
+      <b>Разбор по числам.</b> $F_д=1000$ Гц, $L=200$, значит $\Delta f = 5$ Гц.<br>
+      · <b>Случай без эффекта:</b> $f=50$ Гц. Номер узла $k = 50/5 = 10$ — целое.
+      В окне ровно $10$ периодов, склейка гладкая. У прямоугольного окна вся энергия попадает
+      в один узел, а во всех остальных — машинный ноль: юбки нет вообще. У Хэмминга даже здесь
+      остаётся след около $-71$ дБ, и главный пик занимает три узла вместо одного.
+      То есть на «удобной» частоте прямоугольное окно <b>лучше</b>.<br>
+      · <b>Случай с эффектом:</b> $f=47{,}5$ Гц. $k = 47{,}5/5 = 9{,}5$ — ровно посередине между
+      узлами. В окне $9{,}5$ периода, на склейке максимальный скачок, юбка максимальна.
+      Ближайший боковой лепесток у прямоугольного окна поднимается до $\approx-17$ дБ,
+      у Хэмминга — до $\approx-38$ дБ: разница больше 20 дБ, то есть в десять раз по амплитуде.<br>
+      · <b>Граничный случай:</b> $f=52{,}5$ Гц — тоже $k=10{,}5$, ровно между узлами.
+      Утечка такая же сильная. Это симметрично: важно не само значение частоты, а
+      <b>дробная часть</b> отношения $f/\Delta f$.
+    </div>
+
+    <div class="note"><b>Зачем это нам.</b> Наводка от сети — ровно тот случай. Она сидит на
+    50 Гц, но частота в розетке слегка плавает, да и длину окна мы выбираем не под неё. Значит
+    в реальной записи 50 Гц почти никогда не попадает в узел сетки — линия размазывается,
+    залезает в полезную полосу ЭМГ и портит все спектральные признаки. Поэтому в E3 её убирают
+    <b>режекторным фильтром</b> во времени, а не «вырезанием пика» в спектре.</div>
+
+    <p><b>Почему линия так торчит в спектре, хотя во времени её почти не видно.</b> Наводка —
+    это линия: вся её мощность сидит в одном узле сетки. ЭМГ — широкополосный процесс: такая же
+    мощность размазана по сотням герц, и на каждый узел приходится крохотная доля. Отсюда и
+    разрыв в высоте. Причём он зависит от длины окна: возьмёшь окно длиннее — шаг $\Delta f$
+    станет мельче, доля мышцы на один узел упадёт, а линия останется прежней и поднимется над
+    фоном ещё выше. Это тот случай, когда, «улучшив разрешение», ты меняешь не только
+    подробность картинки, но и то, что на ней вообще заметно.</p>
+
+    <h3>Шаг 3. Почему одного БПФ мало</h3>
+    <p style="margin-top:2px">С чистым тоном всё просто: он один и тот же в каждом окне.
+    А ЭМГ — <span class="term" data-tip="Случайный процесс: сигнал, у которого каждая запись своя. Точного спектра одной записи не существует, можно только оценить средний.">случайный процесс</span>:
+    каждый следующий кусок другой, и спектр у него каждый раз другой. Одна периодограмма
+    прыгает так сильно, что по ней нельзя мерить ничего. Лечится усреднением: смотри, как
+    ломаная успокаивается по мере накопления окон.</p>
+    <canvas id="w_welch" class="scope" width="840" height="190"></canvas>
+    <div class="legend" style="margin-bottom:10px">
+      <span><span class="sw" style="border-color:var(--muted)"></span>периодограммы отдельных окон</span>
+      <span><span class="sw" style="border-color:var(--accent)"></span>текущее среднее (оценка Уэлча)</span>
+    </div>
+    <p style="margin-top:2px">Разброс оценки падает примерно как $1/\sqrt{K}$: четыре окна — вдвое
+    спокойнее, шестнадцать — вчетверо. Плата та же, что всегда: сигнал конечной длины, и чем
+    больше окон мы хотим, тем короче каждое, а короткое окно — это грубая сетка $\Delta f$.</p>
+
+    <div class="tip" style="margin-bottom:4px"><b>Порядок счёта, 4 шага.</b>
+      (1) выбрать длину окна $L$ — она задаёт $\Delta f = F_д/L$;
+      (2) выбрать окно: прямоугольное, если частоты попадают в узлы, иначе Хэмминга;
+      (3) нарезать сигнал на $K$ окон с перекрытием 50 % и посчитать периодограмму каждого;
+      (4) усреднить и только потом мерить по оценке что-либо — уровень линии, полосу,
+      медианную частоту.</div>
+  </div>
+</details>
+
+<!-- ============ ВИДЖЕТ ============ -->
+<div class="lab">
+  <h3>Пример · Спектр ЭМГ: одно окно против усреднения</h3>
+  <p style="margin-top:2px">Сигнал синтетический, но устроен как настоящая ЭМГ: сумма
+  <span class="term" data-tip="MUAP — потенциал действия двигательной единицы: короткий двухфазный всплеск длиной несколько миллисекунд. Мышца состоит из многих двигательных единиц, каждая разряжается 8–20 раз в секунду.">MUAP</span>-разрядов
+  от десяти двигательных единиц, плюс наводка 50 Гц с гармониками, плюс шум усилителя.
+  $F_д=1000$ Гц. Внизу — спектр мощности в децибелах: бледная ломаная это <b>одно</b> окно,
+  яркая — усреднение по $K$ окнам.</p>
+  <canvas id="scT" class="scope" width="840" height="150"></canvas>
+  <div class="legend">↑ сигнал во времени: видны пачки разрядов и сетевая наводка</div>
+  <canvas id="scS" class="scope" width="840" height="210"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--muted)"></span>одно окно (одна периодограмма)</span>
+    <span><span class="sw" style="border-color:var(--accent)"></span>оценка Уэлча по $K$ окнам</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span>медианная частота MDF</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Уровень сетевой наводки 50 Гц (плюс гармоники 100 и 150 Гц) относительно самой мышцы.">Наводка 50 Гц</span></label><input type="range" id="mn" min="0" max="2" step="0.05" value="1"><span class="val" id="mnv">1,00</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Длина одного окна в отсчётах. Задаёт шаг частотной сетки: Δf = 1000/L.">Длина окна $L$</span></label><input type="range" id="Lw" min="0" max="3" step="1" value="2"><span class="val" id="Lwv">256</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Сколько перекрывающихся окон усредняем. Больше окон — глаже и повторяемее оценка.">Число окон $K$</span></label><input type="range" id="Kw" min="1" max="16" step="1" value="8"><span class="val" id="Kwv">8</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Чем вырезаем окна: прямоугольным окном или окном Хэмминга.">Окно</span></label><input type="range" id="ww" min="0" max="1" step="1" value="1"><span class="val" id="wwv">Хэмминга</span></div>
+  </div>
+  <div class="readout" id="out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Поставь $K=1$. Посмотри, как дёргается ломаная. Теперь веди $K$ к 16 — при каком $K$
+          оценка перестаёт «шуметь» настолько, чтобы по ней можно было мерить MDF?</li>
+      <li>Убери наводку в 0 и запиши MDF. Верни наводку на 2,0 — <b>куда уехала MDF</b> и почему?
+          (Подсказка: наводка добавляет мощность ровно на 50 Гц.)</li>
+      <li>Переключи окно на прямоугольное при большой наводке. Сравни, насколько широкая
+          «юбка» у линии 50 Гц в обоих случаях.</li>
+      <li>Поставь $L=64$ и $L=512$ при одинаковом $K$. Что стало с шагом сетки $\Delta f$, и
+          удаётся ли ещё отличить 50 Гц от 100 Гц?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Возьми свой номер и выполни обе части.</p>
+  <p style="margin:6px 0"><b>Часть А — один тон (верхний блок «почему это работает»).</b>
+  Поставь свою частоту и <b>запиши в отчёт</b>: (а) сколько периодов помещается в окно
+  ($f\cdot L/F_д$) и попадает ли частота в узел сетки; (б) на сколько децибел падает
+  ближайший боковой лепесток для прямоугольного окна и для окна Хэмминга; (в) у какого окна
+  главный пик шире.</p>
+  <p style="margin:6px 0"><b>Часть Б — ЭМГ с наводкой (нижний виджет).</b> Поставь свои
+  параметры и <b>запиши</b>: (г) медианную частоту MDF и разброс оценки; (д) как меняется MDF,
+  если убрать наводку в ноль; (е) минимальное $K$, при котором MDF перестаёт прыгать больше
+  чем на 2 Гц при перещёлкивании $L$ на соседнее значение.</p>
+  <table>
+    <tr><th>Вариант</th><th>А: частота тона</th><th>Б: наводка · $L$ · $K$ · окно</th></tr>
+    <tr><td>1</td><td>47,5 Гц</td><td>1,20 · 128 · 4 · Хэмминга</td></tr>
+    <tr><td>2</td><td>52,5 Гц</td><td>0,60 · 256 · 12 · прямоугольное</td></tr>
+    <tr><td>3</td><td>45,0 Гц</td><td>1,80 · 64 · 16 · Хэмминга</td></tr>
+    <tr><td>4</td><td>48,75 Гц</td><td>0,90 · 512 · 2 · прямоугольное</td></tr>
+    <tr><td>5</td><td>55,0 Гц</td><td>1,50 · 128 · 12 · Хэмминга</td></tr>
+    <tr><td>6</td><td>41,25 Гц</td><td>2,00 · 256 · 6 · Хэмминга</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Демонстрационные настройки (50 Гц и
+  1,00 · 256 · 8 · Хэмминга) не совпадают ни с одним вариантом.</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>БПФ считает спектр <b>куска</b> сигнала и мысленно склеивает его в кольцо; разрыв на
+        склейке — это и есть источник утечки.</li>
+    <li>Частота, попавшая в узел сетки $\Delta f = F_д/L$, не течёт вовсе; попавшая ровно между
+        узлами — течёт максимально.</li>
+    <li>Окно Хэмминга меняет <b>высокую юбку на широкий пик</b>. Это обмен, а не улучшение:
+        выбор зависит от того, что мешает — далёкая мощная помеха или близкий второй пик.</li>
+    <li>Для шумоподобного сигнала одна периодограмма — не оценка. Усреднение по $K$ окнам
+        (Уэлч) уменьшает разброс примерно в $\sqrt{K}$ раз, и только по такой оценке имеет
+        смысл мерить MDF, полосу и уровень помехи.</li>
+  </ul>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Что такое окно и зачем оно нужно, если «мы же просто взяли кусок»?</li>
+      <li>Откуда берётся утечка спектра? Почему при целом числе периодов её нет?</li>
+      <li>Чему равен шаг частотной сетки и как он связан с длиной окна?</li>
+      <li>Чем окно Хэмминга лучше прямоугольного и чем хуже?</li>
+      <li>Почему для ЭМГ нельзя пользоваться одной периодограммой?</li>
+      <li>Как метод Уэлча уменьшает разброс оценки и чем за это приходится платить?</li>
+      <li>Почему сетевая наводка на 50 Гц мешает измерению медианной частоты?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный скрипт <code>solution.py</code> собирает тот же
+    синтетический ЭМГ, считает периодограмму и оценку Уэлча через <code>scipy.signal.welch</code>,
+    сравнивает окна и печатает медианную частоту. Для работы он не нужен — всё важное есть
+    в примерах выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 · дальше: E3 — частотная фильтрация ЭМГ
+</p>
+
+</div>
+
+<script>
+  /* ---------- маленькая общая библиотека: БПФ, окна, периодограмма ---------- */
+  var DSP = (function(){
+    function fft(re, im){
+      var n = re.length, i, j, bit, len, ang, wr, wi, k, t;
+      for(i=1, j=0; i<n; i++){
+        bit = n >> 1;
+        for(; j & bit; bit >>= 1) j ^= bit;
+        j ^= bit;
+        if(i < j){ t=re[i]; re[i]=re[j]; re[j]=t; t=im[i]; im[i]=im[j]; im[j]=t; }
+      }
+      for(len=2; len<=n; len<<=1){
+        ang = -2*Math.PI/len; wr = Math.cos(ang); wi = Math.sin(ang);
+        for(i=0; i<n; i+=len){
+          var cr=1, ci=0;
+          for(k=0; k<len/2; k++){
+            var ur=re[i+k], ui=im[i+k];
+            var xr=re[i+k+len/2], xi=im[i+k+len/2];
+            var vr = xr*cr - xi*ci, vi = xr*ci + xi*cr;
+            re[i+k]=ur+vr; im[i+k]=ui+vi;
+            re[i+k+len/2]=ur-vr; im[i+k+len/2]=ui-vi;
+            var ncr = cr*wr - ci*wi; ci = cr*wi + ci*wr; cr = ncr;
+          }
+        }
+      }
+    }
+    function makeWindow(kind, L){
+      var w = new Float64Array(L), n;
+      if(kind === 'hamming'){ for(n=0;n<L;n++) w[n] = 0.54 - 0.46*Math.cos(2*Math.PI*n/(L-1)); }
+      else { for(n=0;n<L;n++) w[n] = 1; }
+      return w;
+    }
+    // периодограмма одного окна: массив мощностей длиной L/2+1
+    function periodogram(x, start, L, w, fs){
+      var re = new Float64Array(L), im = new Float64Array(L), i, u = 0;
+      for(i=0;i<L;i++){ re[i] = x[start+i]*w[i]; u += w[i]*w[i]; }
+      fft(re, im);
+      var half = L/2, p = new Float64Array(half+1);
+      for(i=0;i<=half;i++){
+        var v = (re[i]*re[i] + im[i]*im[i]) / (fs*u);
+        if(i > 0 && i < half) v *= 2;
+        p[i] = v;
+      }
+      return p;
+    }
+    return { fft: fft, makeWindow: makeWindow, periodogram: periodogram };
+  })();
+
+  /* ---------- генератор синтетической ЭМГ ---------- */
+  var SIG = (function(){
+    function lcg(seed){
+      var s = seed >>> 0;
+      return function(){ s = (s*1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    }
+    function gauss(rnd){
+      var u = rnd(); if(u < 1e-9) u = 1e-9;
+      return Math.sqrt(-2*Math.log(u)) * Math.cos(2*Math.PI*rnd());
+    }
+    // MUAP: двухфазный всплеск = производная гауссианы
+    function muap(fs, ms){
+      var half = Math.max(2, Math.round(ms/1000*fs/2)), n = 2*half+1;
+      var sg = n/6, k = new Float64Array(n), mx = 0, i, t, v;
+      for(i=0;i<n;i++){
+        t = i - half;
+        v = -(t/(sg*sg)) * Math.exp(-t*t/(2*sg*sg));
+        k[i] = v; if(Math.abs(v) > mx) mx = Math.abs(v);
+      }
+      for(i=0;i<n;i++) k[i] /= mx;
+      return k;
+    }
+    // интерференционная ЭМГ: разряды десяти двигательных единиц
+    function emg(N, fs, seed){
+      var rnd = lcg(seed), x = new Float64Array(N), k = muap(fs, 10), U = 10, u, i, j;
+      for(u=0; u<U; u++){
+        var rate = 8 + 12*rnd();                 // разрядов в секунду
+        var amp  = 0.5 + rnd();
+        var step = fs/rate;
+        var pos  = rnd()*step;
+        while(pos < N - k.length){
+          var at = Math.round(pos);
+          for(j=0;j<k.length;j++) x[at+j] += amp*k[j];
+          pos += step*(0.75 + 0.5*rnd());        // разброс интервалов
+        }
+      }
+      var acc = 0;
+      for(i=0;i<N;i++) acc += x[i]*x[i];
+      var r = Math.sqrt(acc/N) || 1;
+      for(i=0;i<N;i++) x[i] = x[i]/r + 0.05*gauss(rnd);
+      return x;
+    }
+    function mains(N, fs){
+      var m = new Float64Array(N), t, i;
+      for(i=0;i<N;i++){
+        t = i/fs;
+        m[i] = Math.sin(2*Math.PI*50*t) + 0.35*Math.sin(2*Math.PI*100*t)
+             + 0.15*Math.sin(2*Math.PI*150*t);
+      }
+      return m;
+    }
+    return { emg: emg, mains: mains, lcg: lcg, gauss: gauss };
+  })();
+
+  /* ---------- переключатель темы ---------- */
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redraw) window.__redraw();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){ apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); });
+  })();
+
+  /* ---------- основной виджет: ЭМГ, одно окно против Уэлча ---------- */
+  (function(){
+    var cT = document.getElementById('scT');
+    if(!cT) return;
+    var cS = document.getElementById('scS'), out = document.getElementById('out');
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function fmt(x, d){ var p = Math.pow(10, d === undefined ? 2 : d);
+      return (Math.round(x*p)/p).toString().replace('.', ','); }
+
+    var FS = 1000, N = 4096, FMAX = 500;
+    var LENS = [64, 128, 256, 512];
+    var emgBase = SIG.emg(N, FS, 20260826);
+    var mainsBase = SIG.mains(N, FS);
+
+    var el = {};
+    ['mn','Lw','Kw','ww'].forEach(function(id){ el[id]=document.getElementById(id); el[id+'v']=document.getElementById(id+'v'); });
+
+    function buildSignal(mn){
+      var x = new Float64Array(N), i;
+      for(i=0;i<N;i++) x[i] = emgBase[i] + mn*mainsBase[i];
+      return x;
+    }
+    function welch(x, L, K, kind){
+      var w = DSP.makeWindow(kind, L), step = L/2, segs = [], k;
+      for(k=0; k<K; k++){
+        var st = k*step;
+        if(st + L > N) break;
+        segs.push(DSP.periodogram(x, st, L, w, FS));
+      }
+      var half = L/2, avg = new Float64Array(half+1), i, s;
+      for(i=0;i<=half;i++){
+        var acc = 0;
+        for(s=0;s<segs.length;s++) acc += segs[s][i];
+        avg[i] = acc/segs.length;
+      }
+      return { avg: avg, one: segs[0], segs: segs };
+    }
+    // медианная частота по полосе 20..450 Гц
+    function mdf(p, L){
+      var df = FS/L, lo = Math.ceil(20/df), hi = Math.floor(450/df), i, tot = 0;
+      for(i=lo;i<=hi && i<p.length;i++) tot += p[i];
+      var acc = 0;
+      for(i=lo;i<=hi && i<p.length;i++){ acc += p[i]; if(acc >= tot/2) return i*df; }
+      return 0;
+    }
+    // разброс усреднённой оценки, в процентах
+    function spread(res, L){
+      var df = FS/L, lo = Math.ceil(20/df), hi = Math.floor(450/df);
+      var K = res.segs.length, i, s, acc = 0, cnt = 0;
+      if(K < 2) return 100;
+      for(i=lo;i<=hi && i<res.avg.length;i++){
+        var m = res.avg[i]; if(m <= 0) continue;
+        var v = 0;
+        for(s=0;s<K;s++){ var d = res.segs[s][i] - m; v += d*d; }
+        acc += Math.sqrt(v/(K-1))/m; cnt++;
+      }
+      return cnt ? 100*acc/cnt/Math.sqrt(K) : 100;
+    }
+
+    function drawTime(x){
+      var ctx = cT.getContext('2d'), W = cT.width, H = cT.height;
+      ctx.clearRect(0,0,W,H);
+      var pad = 24, y0 = H/2, SHOW = 1500, i, amax = 0;
+      for(i=0;i<SHOW;i++) amax = Math.max(amax, Math.abs(x[i]));
+      amax = amax*1.1 + 1e-9;
+      ctx.strokeStyle = css('--line'); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+      ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1.2; ctx.beginPath();
+      for(i=0;i<SHOW;i++){
+        var px = pad + (i/(SHOW-1))*(W-2*pad), py = y0 - (x[i]/amax)*(H/2-8);
+        i ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+      }
+      ctx.stroke();
+      ctx.fillStyle = css('--muted'); ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('1,5 с', W-pad, H-6);
+    }
+    function drawSpec(res, L, mdfVal){
+      var ctx = cS.getContext('2d'), W = cS.width, H = cS.height;
+      ctx.clearRect(0,0,W,H);
+      var line = css('--line'), accent = css('--accent'), muted = css('--muted'), warn = css('--warn');
+      var padL = 44, padR = 14, padT = 12, padB = 26;
+      var x0 = padL, y0 = H - padB, DBMIN = -60;
+      function X(f){ return x0 + (f/FMAX)*(W-padL-padR); }
+      function Y(db){ return y0 - ((db - DBMIN)/(0 - DBMIN))*(H-padT-padB); }
+      var i, mx = 0, half = L/2;
+      for(i=0;i<=half;i++) if(res.avg[i] > mx) mx = res.avg[i];
+      if(mx <= 0) mx = 1e-12;
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0,padT); ctx.lineTo(x0,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+      for(var f=0; f<=FMAX; f+=100){
+        ctx.fillText(f+'', X(f), H-8);
+        ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(X(f),padT); ctx.lineTo(X(f),y0); ctx.stroke();
+      }
+      ctx.textAlign = 'right';
+      for(var db=0; db>=DBMIN; db-=20){
+        ctx.fillText(db+' дБ', x0-5, Y(db)+4);
+        ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(x0,Y(db)); ctx.lineTo(W-padR,Y(db)); ctx.stroke();
+      }
+      ctx.textAlign = 'center'; ctx.fillText('частота, Гц', W-padR-40, H-8);
+      function curve(p, color, width, alpha){
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        for(i=0;i<=half;i++){
+          var db = 10*Math.log10((p[i]+1e-15)/mx);
+          if(db < DBMIN) db = DBMIN;
+          var px = X(i*FS/L), py = Y(db);
+          i ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+        }
+        ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      curve(res.one, muted, 1.1, 0.55);
+      curve(res.avg, accent, 2.0, 1);
+      ctx.strokeStyle = warn; ctx.lineWidth = 1.4; ctx.setLineDash([5,4]);
+      ctx.beginPath(); ctx.moveTo(X(mdfVal),padT); ctx.lineTo(X(mdfVal),y0); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = warn; ctx.textAlign = 'left'; ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('MDF ' + Math.round(mdfVal) + ' Гц', Math.min(X(mdfVal)+6, W-90), padT+12);
+    }
+
+    function update(){
+      var mn = +el.mn.value, L = LENS[+el.Lw.value], K = +el.Kw.value;
+      var kind = (+el.ww.value === 1) ? 'hamming' : 'rect';
+      el.mnv.textContent = fmt(mn);
+      el.Lwv.textContent = L;
+      el.Kwv.textContent = K;
+      el.wwv.textContent = (kind === 'hamming') ? 'Хэмминга' : 'прямоуг.';
+      var x = buildSignal(mn);
+      var res = welch(x, L, K, kind);
+      var m = mdf(res.avg, L), sp = spread(res, L);
+      drawTime(x);
+      drawSpec(res, L, m);
+      out.className = (res.segs.length >= 4) ? 'readout ok' : 'readout bad';
+      out.innerHTML = 'Шаг сетки Δf = 1000/' + L + ' = <span class="big">' + fmt(FS/L) +
+        ' Гц</span>. Усреднено окон: <span class="big">' + res.segs.length + '</span>. ' +
+        'Медианная частота MDF = <span class="big">' + Math.round(m) + ' Гц</span>, ' +
+        'разброс оценки ≈ ' + Math.round(sp) + ' %. ' +
+        (res.segs.length >= 4 ? 'Оценка достаточно гладкая, по ней можно мерить.'
+                              : 'Окон мало — оценка прыгает, мерить по ней нельзя.');
+    }
+    ['mn','Lw','Kw','ww'].forEach(function(id){ el[id].addEventListener('input', update); });
+    window.__redraw = update;
+    update();
+  })();
+
+  /* ---------- иллюстрации блока «почему кусок врёт» ---------- */
+  (function(){
+    var wf = document.getElementById('w_f');
+    if(!wf) return;
+    var wfv = document.getElementById('w_fv'), ww = document.getElementById('w_w'),
+        wwv = document.getElementById('w_wv'), wout = document.getElementById('w_out');
+    var cTime = document.getElementById('w_time'), cSpec = document.getElementById('w_spec'),
+        cWel = document.getElementById('w_welch');
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function fmt(x, d){ var p = Math.pow(10, d === undefined ? 2 : d);
+      return (Math.round(x*p)/p).toString().replace('.', ','); }
+
+    var FS = 1000, L = 200, DF = FS/L;           // шаг сетки ровно 5 Гц
+    var winR = DSP.makeWindow('rect', L), winH = DSP.makeWindow('hamming', L);
+
+    function tone(f){ var s = new Float64Array(L), n;
+      for(n=0;n<L;n++) s[n] = Math.sin(2*Math.PI*f*n/FS); return s; }
+    // прямое ДПФ: длина 200 не степень двойки, но 101 бин считается мгновенно
+    function specDb(s, w){
+      var half = L/2, mag = new Float64Array(half+1), k, n, re, im, mx = 0;
+      for(k=0;k<=half;k++){
+        re = 0; im = 0;
+        for(n=0;n<L;n++){ var a = 2*Math.PI*k*n/L; re += s[n]*w[n]*Math.cos(a); im -= s[n]*w[n]*Math.sin(a); }
+        mag[k] = Math.sqrt(re*re + im*im);
+        if(mag[k] > mx) mx = mag[k];
+      }
+      for(k=0;k<=half;k++) mag[k] = 20*Math.log10((mag[k] + 1e-12)/mx);
+      return mag;
+    }
+
+    function drawTime(f, kind){
+      var ctx = cTime.getContext('2d'), W = cTime.width, H = cTime.height;
+      ctx.clearRect(0,0,W,H);
+      var line = css('--line'), accent = css('--accent'), warn = css('--warn'),
+          muted = css('--muted'), ink = css('--ink');
+      var padL = 24, padR = 120, y0 = H/2, n, px, py;
+      var w = (kind === 'hamming') ? winH : winR;
+      var s = tone(f);
+      function X(i){ return padL + (i/(L-1))*(W-padL-padR); }
+      function Y(v){ return y0 - v*(H/2-16); }
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(padL,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+      // форма окна
+      ctx.strokeStyle = warn; ctx.lineWidth = 1.4; ctx.setLineDash([5,4]); ctx.beginPath();
+      for(n=0;n<L;n++){ px = X(n); py = Y(w[n]); n ? ctx.lineTo(px,py) : ctx.moveTo(px,py); }
+      ctx.stroke(); ctx.setLineDash([]);
+      // сам кусок
+      ctx.strokeStyle = accent; ctx.lineWidth = 1.8; ctx.beginPath();
+      for(n=0;n<L;n++){ px = X(n); py = Y(s[n]*w[n]); n ? ctx.lineTo(px,py) : ctx.moveTo(px,py); }
+      ctx.stroke();
+      // склейка: последний отсчёт -> первый отсчёт, показанный справа
+      var xEnd = X(L-1), yEnd = Y(s[L-1]*w[L-1]);
+      var xNext = W - padR + 46, yNext = Y(s[0]*w[0]);
+      ctx.fillStyle = ink;
+      ctx.beginPath(); ctx.arc(xEnd, yEnd, 3.5, 0, 2*Math.PI); ctx.fill();
+      ctx.beginPath(); ctx.arc(xNext, yNext, 3.5, 0, 2*Math.PI); ctx.fill();
+      ctx.strokeStyle = muted; ctx.lineWidth = 1.4; ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(xEnd, yEnd); ctx.lineTo(xNext, yNext); ctx.stroke();
+      ctx.setLineDash([]);
+      var jump = Math.abs(s[0]*w[0] - s[L-1]*w[L-1]);
+      ctx.fillStyle = (jump > 0.25) ? warn : css('--ok');
+      ctx.font = 'bold 12px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('склейка', W-padR+8, 18);
+      ctx.fillText('скачок ' + fmt(jump), W-padR+8, H-10);
+    }
+
+    function drawSpec(f){
+      var ctx = cSpec.getContext('2d'), W = cSpec.width, H = cSpec.height;
+      ctx.clearRect(0,0,W,H);
+      var line = css('--line'), accent = css('--accent'), ok = css('--ok'), muted = css('--muted');
+      var padL = 44, padR = 14, padT = 12, padB = 26, x0 = padL, y0 = H - padB;
+      var FMAX = FS/2, DBMIN = -80, half = L/2, k;
+      function X(fq){ return x0 + (fq/FMAX)*(W-padL-padR); }
+      function Y(db){ return y0 - ((db - DBMIN)/(0 - DBMIN))*(H-padT-padB); }
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0,padT); ctx.lineTo(x0,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+      for(var fq=0; fq<=FMAX; fq+=100){
+        ctx.fillText(fq+'', X(fq), H-8);
+        ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(X(fq),padT); ctx.lineTo(X(fq),y0); ctx.stroke();
+      }
+      ctx.textAlign = 'right';
+      for(var db=0; db>=DBMIN; db-=20){
+        ctx.fillText(db+' дБ', x0-5, Y(db)+4);
+        ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(x0,Y(db)); ctx.lineTo(W-padR,Y(db)); ctx.stroke();
+      }
+      var s = tone(f);
+      function curve(mag, color, width){
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.beginPath();
+        for(k=0;k<=half;k++){
+          var db = mag[k]; if(db < DBMIN) db = DBMIN;
+          var px = X(k*DF), py = Y(db);
+          k ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+        }
+        ctx.stroke();
+      }
+      curve(specDb(s, winR), accent, 1.9);
+      curve(specDb(s, winH), ok, 1.9);
+      ctx.strokeStyle = muted; ctx.lineWidth = 1.2; ctx.setLineDash([4,4]);
+      ctx.beginPath(); ctx.moveTo(X(f),padT); ctx.lineTo(X(f),y0); ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // ---- Уэлч: накопление окон ----
+    var segsW = null, kShown = 1, frameCount = 0;
+    function prepareWelch(){
+      var NW = 4096, LW = 256, x = SIG.emg(NW, FS, 777), w = DSP.makeWindow('hamming', LW);
+      segsW = [];
+      for(var k=0;k<16;k++) segsW.push(DSP.periodogram(x, k*(LW/2), LW, w, FS));
+      return LW;
+    }
+    var LW = prepareWelch();
+    function drawWelch(){
+      var ctx = cWel.getContext('2d'), W = cWel.width, H = cWel.height;
+      ctx.clearRect(0,0,W,H);
+      var line = css('--line'), accent = css('--accent'), muted = css('--muted');
+      var padL = 44, padR = 14, padT = 12, padB = 26, x0 = padL, y0 = H - padB;
+      var FMAX = 500, DBMIN = -40, half = LW/2, i, s;
+      function X(f){ return x0 + (f/FMAX)*(W-padL-padR); }
+      function Y(db){ return y0 - ((db - DBMIN)/(0 - DBMIN))*(H-padT-padB); }
+      var avg = new Float64Array(half+1), mx = 0;
+      for(i=0;i<=half;i++){
+        var acc = 0;
+        for(s=0;s<kShown;s++) acc += segsW[s][i];
+        avg[i] = acc/kShown;
+        if(avg[i] > mx) mx = avg[i];
+      }
+      ctx.strokeStyle = line; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(x0,padT); ctx.lineTo(x0,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+      for(var f=0; f<=FMAX; f+=100){
+        ctx.fillText(f+'', X(f), H-8);
+        ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(X(f),padT); ctx.lineTo(X(f),y0); ctx.stroke();
+      }
+      function curve(p, color, width, alpha){
+        ctx.strokeStyle = color; ctx.lineWidth = width; ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        for(i=0;i<=half;i++){
+          var db = 10*Math.log10((p[i]+1e-15)/mx);
+          if(db < DBMIN) db = DBMIN;
+          var px = X(i*FS/LW), py = Y(db);
+          i ? ctx.lineTo(px,py) : ctx.moveTo(px,py);
+        }
+        ctx.stroke(); ctx.globalAlpha = 1;
+      }
+      for(s=0; s<kShown; s++) curve(segsW[s], muted, 1, 0.28);
+      curve(avg, accent, 2.2, 1);
+      ctx.fillStyle = accent; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'left';
+      ctx.fillText('усреднено окон: ' + kShown, x0 + 10, padT + 14);
+    }
+
+    function updOut(){
+      var f = +wf.value, kind = (+ww.value === 1) ? 'hamming' : 'rect';
+      wfv.textContent = fmt(f, 2) + ' Гц';
+      wwv.textContent = (kind === 'hamming') ? 'Хэмминга' : 'прямоуг.';
+      var periods = f*L/FS, k = f/DF, frac = Math.abs(k - Math.round(k));
+      var clean = frac < 1e-6;
+      wout.className = clean ? 'readout ok' : 'readout bad';
+      wout.innerHTML = 'В окно помещается <span class="big">' + fmt(periods, 2) +
+        '</span> периодов, номер узла k = f/Δf = ' + fmt(k, 2) + '. ' +
+        (clean ? 'Целое — концы сходятся, разрыва нет, <b>утечки нет</b>.'
+               : 'Не целое — на склейке скачок, энергия растекается: <b>утечка</b>.');
+    }
+    function redrawStatic(){
+      var f = +wf.value, kind = (+ww.value === 1) ? 'hamming' : 'rect';
+      drawTime(f, kind); drawSpec(f); updOut();
+    }
+    wf.addEventListener('input', redrawStatic);
+    ww.addEventListener('input', redrawStatic);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); redrawStatic(); };
+
+    function frame(){
+      frameCount++;
+      if(frameCount % 45 === 0){ kShown++; if(kShown > 16) kShown = 1; }
+      drawWelch();
+      requestAnimationFrame(frame);
+    }
+    redrawStatic();
+    requestAnimationFrame(frame);
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа F4 — Обнаружение разряда по известной форме</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;}
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600; box-shadow:var(--shadow); transition:transform .15s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);}
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px; font-family:"SF Mono",Menlo,Consolas,monospace;}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px;}
+  .legend span{margin-right:16px; white-space:nowrap;}
+  .legend .sw{display:inline-block; width:18px; border-top:3px solid var(--accent);
+    margin-right:6px; vertical-align:middle;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 90px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line); background:var(--accent-soft);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа F4</span>
+  <h1>Обнаружение разряда по известной форме</h1>
+  <p>Серия «синус → протез» · часть 2 · одна тема, три интерактивных примера</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> форма полезного всплеска <b>заранее известна</b> — и надо
+    найти его в шуме. В E4 мы мерили огибающую и отвечали на вопрос «насколько сильно
+    напряжена мышца». Здесь вопрос другой: <b>был ли разряд именно такой формы и в какой
+    момент</b>. Ответ цифровой обработки сигналов на этот вопрос один и тот же уже
+    восемьдесят лет — <span class="term" data-tip="Согласованный фильтр: фильтр, чья импульсная характеристика — развёрнутая во времени копия искомого сигнала. Даёт максимально возможное отношение сигнал/шум в момент прихода сигнала.">согласованный фильтр</span>.
+  </p>
+  <p style="margin-bottom:0">
+    Что ты поймёшь руками: почему фильтр «свой сигнал задом наперёд» — это <b>лучшее, что
+    вообще можно сделать</b> при белом шуме; сколько именно децибел он даёт и почему для
+    разряда мышцы это всего около семи, а не тридцать, как в радиолокации; чем он
+    выигрывает у порога по огибающей; сколько стоит неточно угаданная форма; и в какой
+    момент вся эта оптимальность перестаёт работать.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">Пусть в записи $x[n]$ спрятан известный по форме всплеск $s[k]$
+  длиной $M$ отсчётов, а мешает ему белый шум со
+  <span class="term" data-tip="СКО — среднеквадратическое отклонение, тот же корень из дисперсии. Для шума это его «типичная величина».">СКО</span> $\sigma$.
+  Обнаружитель делает ровно три вещи:</p>
+  <table>
+    <tr><th>Шаг</th><th>Что делает</th><th>Формула</th></tr>
+    <tr><td><span class="term" data-tip="Корреляционный приём: скалярное произведение куска записи с образцом. Чем больше кусок похож на образец, тем больше число на выходе.">корреляция</span> с образцом</td>
+        <td>скользящее скалярное произведение записи с формой $s$</td>
+        <td>$y[n]=\sum_k s[k]\,x[n{+}k]$</td></tr>
+    <tr><td>то же как фильтр</td>
+        <td>это обычная свёртка с развёрнутой копией сигнала</td>
+        <td>$h[k]=\dfrac{s[M-1-k]}{\lVert s\rVert}$</td></tr>
+    <tr><td>решение</td>
+        <td>сравниваем выход с порогом; превысил — считаем, что разряд был</td>
+        <td>$y[n]>\lambda$</td></tr>
+  </table>
+  <p>Деление на <span class="term" data-tip="Норма ‖s‖ = корень из суммы квадратов отсчётов сигнала. Её квадрат — энергия сигнала E.">норму</span>
+  $\lVert s\rVert=\sqrt{\sum_k s^2[k]}$ нужно только для удобства: оно оставляет шум на
+  выходе с тем же СКО $\sigma$, что и на входе, поэтому порог можно назначать сразу
+  «в сигмах». Главный результат работы — величина выигрыша:</p>
+  \[ q_{\max}=\frac{\lVert s\rVert}{\sigma}=\frac{\sqrt{E_s}}{\sigma},
+     \qquad E_s=\sum_k s^2[k]. \]
+  <p style="margin-bottom:0">Читается так: <b>отношение сигнал/шум на выходе определяется
+  энергией сигнала и больше ничем</b> — ни его формой, ни длительностью по отдельности.
+  Растянешь тот же всплеск вдвое, сохранив энергию, — выигрыш не изменится.</p>
+</div>
+
+<!-- ============ ВЫВОД ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему именно «сигнал задом наперёд» — вывод в четыре строки<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Возьмём <b>любой</b> линейный фильтр с весами $w[k]$ и посмотрим
+    на его выход в тот единственный момент, когда всплеск полностью попал в окно фильтра.
+    Выход складывается из двух слагаемых:</p>
+    \[ y \;=\; \underbrace{\textstyle\sum_k w[k]\,s[k]}_{\text{сигнал}}
+       \;+\; \underbrace{\textstyle\sum_k w[k]\,n[k]}_{\text{шум}}. \]
+    <p>Шумовое слагаемое — сумма независимых случайных величин, поэтому его СКО равно
+    $\sigma\lVert w\rVert$: дисперсии складываются, веса входят в квадрате. Значит
+    отношение сигнал/шум в этот момент —</p>
+    \[ q=\frac{\sum_k w[k]s[k]}{\sigma\lVert w\rVert}
+        =\frac{\langle w,s\rangle}{\sigma\lVert w\rVert}. \]
+    <p>А теперь единственный математический факт, который здесь нужен —
+    <span class="term" data-tip="Неравенство Коши–Буняковского: скалярное произведение двух векторов не больше произведения их длин. Равенство — только когда векторы коллинеарны, то есть направлены одинаково.">неравенство Коши–Буняковского</span>
+    $\langle w,s\rangle\le\lVert w\rVert\,\lVert s\rVert$. Подставляем — и $\lVert w\rVert$
+    сокращается:</p>
+    \[ q\;\le\;\frac{\lVert w\rVert\,\lVert s\rVert}{\sigma\lVert w\rVert}
+        =\frac{\lVert s\rVert}{\sigma}. \]
+    <p>Верхняя граница достигается <b>только</b> при $w\propto s$ — вектор весов должен
+    смотреть туда же, куда сигнал. Остаётся техническая мелочь: свёртка переворачивает
+    свой второй аргумент, поэтому чтобы получить именно корреляцию, импульсную
+    характеристику записывают развёрнутой: $h[k]=s[M-1-k]$. Отсюда и название.</p>
+
+    <p><b>Сколько это в децибелах.</b> У нашего шаблона пик нормирован на единицу, поэтому
+    отношение сигнал/шум на входе — это $1/\sigma$, а выигрыш ровно $\lVert s\rVert$, то есть
+    $10\lg E_s$ децибел. Энергия $E_s$ при единичном пике — это, грубо говоря, <b>число
+    отсчётов, на которых сигнал заметно отличается от нуля</b>. Отсюда и берётся
+    <span class="term" data-tip="База сигнала: произведение длительности на ширину полосы, B·T. Показывает, по скольким независимым отсчётам фильтр может накопить сигнал.">база сигнала</span>:
+    разряд мышцы длится 12 мс и при 1000 Гц занимает 13 отсчётов, а радиолокационный
+    импульс растянут на тысячи. Поэтому там выигрыш 25–30 дБ, а здесь — около семи.
+    Согласованный фильтр не творит чудес: он собирает ровно столько, сколько отсчётов
+    успел набрать.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Длительность разряда двигательной единицы. У поверхностной ЭМГ это обычно 5–20 мс.">Длительность</span></label><input type="range" id="g_ms" min="4" max="40" step="1" value="12"><span class="val" id="g_msv">12 мс</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Частота дискретизации записи. Чем она выше, тем больше отсчётов приходится на тот же по времени всплеск.">Частота $F_д$</span></label><input type="range" id="g_fs" min="0" max="4" step="1" value="1"><span class="val" id="g_fsv">1000 Гц</span></div>
+      </div>
+      <div class="readout ok" id="g_out"></div>
+      <canvas id="g_gain" class="scope" width="840" height="200"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="border-color:var(--accent)"></span>выигрыш $10\lg E_s$</span>
+        <span><span class="sw" style="border-color:#d93025; border-top-style:dashed"></span>выбранная длительность</span>
+      </div>
+      <div class="muted" style="margin-top:2px">По горизонтали — длительность разряда в
+        миллисекундах, по вертикали — выигрыш согласованного фильтра в децибелах.
+        Кривая идёт вверх на 3 дБ при каждом удвоении числа отсчётов — и никогда не улетает.
+        <b>Осторожно со второй ручкой:</b> повышение $F_д$ формально тоже прибавляет отсчётов
+        и децибел, но только пока шум остаётся белым в новой, более широкой полосе.
+        У настоящего усилителя полоса своя, и пересчётом записи вверх (см. F3) отношение
+        сигнал/шум не улучшишь — прибавка будет только на бумаге.</div>
+    </div>
+
+    <div class="tip" style="margin-bottom:4px"><b>Порядок счёта, 3 шага.</b>
+      (1) посчитать энергию шаблона $E_s=\sum s^2[k]$;
+      (2) выигрыш в децибелах — это $10\lg E_s$ при единичном пике;
+      (3) прибавить его к отношению сигнал/шум на входе и посмотреть, хватает ли
+      результата, чтобы поставить порог выше шума.</div>
+  </div>
+</details>
+
+<!-- ============ ВИДЖЕТ 1: СОГЛАСОВАННЫЙ ФИЛЬТР ============ -->
+<div class="lab">
+  <h3>Пример 1 · Фильтр из самого сигнала: что он делает с записью</h3>
+  <p style="margin-top:2px">Сверху — запись: редкие разряды одной двигательной единицы,
+  утопленные в белом шуме. Зелёные штрихи снизу отмечают, где разряды на самом деле были;
+  на глаз при малом отношении сигнал/шум их там не видно. Снизу — та же запись после
+  согласованного фильтра и порог «три сигмы по шуму».</p>
+  <canvas id="mIn" class="scope" width="840" height="190"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--muted)"></span>запись $x[n]$ = разряды + шум</span>
+    <span><span class="sw" style="border-color:var(--ok)"></span>истинные моменты разрядов</span>
+  </div>
+  <canvas id="mOut" class="scope" width="840" height="190"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span>выход согласованного фильтра</span>
+    <span><span class="sw" style="border-color:#d93025; border-top-style:dashed"></span>порог 3σ по шуму</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Отношение сигнал/шум на входе: пик разряда, делённый на СКО шума, в децибелах. 0 дБ — пик вровень с шумом.">ОСШ на входе</span></label><input type="range" id="m_snr" min="-6" max="14" step="1" value="6"><span class="val" id="m_snrv">6 дБ</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Длительность разряда. Она же задаёт длину шаблона, а значит и энергию, а значит и выигрыш.">Длительность</span></label><input type="range" id="m_ms" min="6" max="24" step="1" value="12"><span class="val" id="m_msv">12 мс</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Сколько разрядов в секунду выдаёт двигательная единица. При высокой частоте разряды начинают налезать друг на друга.">Разрядов в секунду</span></label><input type="range" id="m_rate" min="4" max="30" step="1" value="8"><span class="val" id="m_ratev">8</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Порог решения в единицах СКО шума на выходе фильтра. Выше порог — меньше ложных срабатываний, но и пропусков больше.">Порог, σ</span></label><input type="range" id="m_thr" min="1.5" max="6" step="0.1" value="3"><span class="val" id="m_thrv">3,0 σ</span></div>
+  </div>
+  <div class="readout" id="m_out1"></div>
+  <div class="readout" id="m_out2"></div>
+  <div class="note" style="margin-top:12px"><b>Что должно получиться на настройках по
+    умолчанию</b> (ОСШ 6 дБ, 12 мс, 8 разрядов/с, порог 3σ): шаблон — <b>13 отсчётов</b>,
+    энергия $E_s=5{,}28$, $\lVert s\rVert=2{,}30$, значит теоретический выигрыш
+    <b>+7,2 дБ</b>. В записи 94 разряда за 12 секунд. Измеренный выигрыш <b>+7,3 дБ</b> —
+    сходится с теорией; расхождение в десятую долю децибела берётся из конечного числа
+    разрядов, по которым усредняется отклик. Порог 3σ находит <b>91 из 94</b> (97 %) ценой
+    6 ложных срабатываний, то есть 0,5 в секунду.
+    <br><b>И честно, два уточнения.</b> Первое: «выигрыш 7 дБ» — это про отношение
+    сигнал/шум, а не про долю найденного. При −6 дБ на входе выход будет всего 1,5 дБ,
+    и тот же порог 3σ возьмёт уже 10 % разрядов, а не 97 %. Семь децибел — это
+    <i>всё</i>, что даёт оптимальная линейная обработка, и иногда этого просто не хватает.
+    Второе: Python-версия работы печатает близкие, но не совпадающие до цифры числа
+    (выигрыш +7,1 дБ, 162 разряда за 20 с). Сигнал там синтезируется другим генератором
+    случайных чисел — это другая реализация той же модели, а не другой результат.</div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Опусти ОСШ до −6 дБ. На верхнем графике разрядов не видно совсем — а на нижнем?
+          Выпиши, сколько из них фильтр всё ещё вытаскивает над порогом.</li>
+      <li>Веди длительность от 6 до 24 мс и записывай теоретический выигрыш. Сверь прирост
+          с формулой $10\lg E_s$: при удвоении длительности он растёт примерно на 3 дБ.</li>
+      <li>Измеренный выигрыш всегда чуть отличается от теоретического. Объясни, откуда
+          берётся расхождение и почему оно уменьшается, если увеличить число разрядов.</li>
+      <li>Подними частоту разрядов до 30 в секунду. Наш вывод предполагал, что в окне
+          фильтра ровно один всплеск, — теперь это неправда. Проверь, что стало с
+          измеренным выигрышем, и объясни, почему он не рухнул. При какой частоте разрядов
+          детектор начнёт <i>склеивать</i> соседние разряды в один и почему?</li>
+      <li>Поставь порог 1,5σ и 6σ. Запиши число срабатываний в обоих случаях и объясни,
+          почему «просто поднять порог» не решает задачу.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2: КРИВАЯ ОБНАРУЖЕНИЯ ============ -->
+<div class="lab">
+  <h3>Пример 2 · С чем сравнивать: кривая обнаружения</h3>
+  <p style="margin-top:2px">Одного порога мало: любой обнаружитель можно сделать
+  «стопроцентным», опустив порог до пола, — вместе с горой ложных срабатываний. Поэтому
+  качество меряют <b>кривой</b>: перебираем порог от высокого к низкому и на каждом шаге
+  отмечаем точку «сколько разрядов найдено — сколько ложных срабатываний в секунду».
+  Сравниваем согласованный фильтр с честной альтернативой из E4: порогом по
+  <span class="term" data-tip="Огибающая по СКЗ: скользящее среднеквадратичное значение. Показывает уровень активности, но полностью игнорирует форму всплеска.">огибающей СКЗ</span>,
+  которая про форму разряда не знает ничего.</p>
+  <canvas id="cRoc" class="scope" width="840" height="300"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span>согласованный фильтр, белый шум</span>
+    <span><span class="sw" style="border-color:var(--warn)"></span>порог по огибающей СКЗ</span>
+    <span><span class="sw" style="border-color:#8e44ad"></span>согласованный фильтр, фон ЭМГ</span>
+    <span><span class="sw" style="border-color:#d93025; border-top-style:dotted"></span>рабочая точка: 1 ложное/с</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Отношение сигнал/шум на входе, в децибелах.">ОСШ на входе</span></label><input type="range" id="c_snr" min="-6" max="14" step="1" value="6"><span class="val" id="c_snrv">6 дБ</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Длина окна скользящего СКЗ. Слишком короткое — огибающая шумит, слишком длинное — размазывает разряд.">Окно СКЗ</span></label><input type="range" id="c_win" min="4" max="50" step="2" value="12"><span class="val" id="c_winv">12 мс</span></div>
+  </div>
+  <div class="readout" id="c_out1"></div>
+  <div class="readout" id="c_out2"></div>
+  <div class="note" style="margin-top:12px"><b>Что должно получиться при 6 дБ и окне
+    12 мс:</b> согласованный фильтр находит <b>98 %</b> разрядов, порог по огибающей —
+    <b>72 %</b>. Подбор окна огибающую выручает, но не спасает: лучшее окно здесь 6 мс и
+    <b>79 %</b>, дальше только хуже (16 мс — 55 %, 36 мс — 4 %). На фоне ЭМГ той же
+    мощности тот же фильтр падает до <b>17 %</b>.
+    <br><b>И честно, две оговорки.</b> Первая: разрыв сильно зависит от ОСШ, и «в разы
+    лучше» верно только в середине шкалы. При 0 дБ это 44 % против 14 % — вот там форма
+    и решает. При 10 дБ обе кривые упираются в сотню: разряд и так торчит над шумом,
+    и знать форму незачем. Вторая: Python-версия считает то же самое на 20-секундной
+    записи с другим генератором и печатает 98 % против 62 % (лучшее окно — 69 %),
+    фон ЭМГ — 13 %. Это разброс одной и той же модели, а не расхождение выводов.</div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Подбери окно СКЗ так, чтобы оранжевая кривая забралась как можно выше. Запиши
+          лучшее окно и лучший результат — сравнивать надо с <b>настроенной</b>
+          альтернативой, а не с нарочно испорченной.</li>
+      <li>Даже при лучшем окне разрыв остаётся большим. Сформулируй одной фразой, какую
+          информацию использует согласованный фильтр и не использует огибающая.</li>
+      <li>Опусти ОСШ до −6 дБ, потом подними до 14. При каком примерно ОСШ согласованный
+          фильтр перестаёт ошибаться вовсе? Почему кривая упирается в единицу, а не идёт выше?</li>
+      <li>Фиолетовая кривая — тот же фильтр и та же <b>мощность</b> помехи, но помеха имеет
+          форму настоящей ЭМГ. Объясни, какое предположение вывода при этом нарушено.</li>
+      <li>Найди ОСШ, при котором фиолетовая кривая догоняет оранжевую. Что это значит
+          практически: стоит ли городить согласованный фильтр, если мешает не шум
+          усилителя, а соседняя мышца?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 3: РАССОГЛАСОВАНИЕ ============ -->
+<div class="lab">
+  <h3>Пример 3 · Чем платим за неточно угаданную форму</h3>
+  <p style="margin-top:2px">Весь вывод держался на том, что форма $s$ <b>известна точно</b>.
+  В жизни она известна приблизительно: шаблон снят с одного человека, а работает на другом,
+  или мышца устала и разряды стали длиннее. Что будет, если фильтр собран под шаблон
+  длительностью $M'$, а в записи разряды длительностью 12 мс?</p>
+  <p style="margin:6px 0">Ответ считается на одной строчке. Отклик в момент совпадения —
+  это $\langle s,g\rangle/\lVert g\rVert$, а идеал был $\lVert s\rVert$. Отношение —</p>
+  \[ \frac{\langle s,g\rangle}{\lVert s\rVert\,\lVert g\rVert}=\cos\theta,
+     \qquad \text{потеря} = 20\lg\cos\theta \ \text{дБ}. \]
+  <p style="margin:6px 0">То есть <b>потеря — это косинус угла между двумя формами</b>,
+  и ничего больше. Хорошая новость: косинус около единицы очень пологий, поэтому небольшая
+  ошибка в форме почти ничего не стоит.</p>
+  <canvas id="tLoss" class="scope" width="840" height="240"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span>потеря отклика, дБ</span>
+    <span><span class="sw" style="border-color:var(--ok); border-top-style:dashed"></span>истинная длительность 12 мс</span>
+    <span><span class="sw" style="border-color:#d93025; border-top-style:dotted"></span>уровень −1 дБ</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Длительность разряда, под которую собран фильтр. Истинная длительность в записи — 12 мс.">Шаблон в фильтре</span></label><input type="range" id="t_ms" min="4" max="30" step="1" value="12"><span class="val" id="t_msv">12 мс</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Отношение сигнал/шум на входе. Нужно, чтобы перевести потерю отклика в потерю обнаружения.">ОСШ на входе</span></label><input type="range" id="t_snr" min="-6" max="14" step="1" value="6"><span class="val" id="t_snrv">6 дБ</span></div>
+  </div>
+  <div class="readout" id="t_out"></div>
+  <div class="readout" id="t_out2"></div>
+  <div class="note" style="margin-top:12px"><b>Что должно получиться:</b> потеря не хуже
+    1 дБ во всём диапазоне длительностей шаблона <b>от 7 до 18 мс</b> — то есть промахнуться
+    почти в полтора раза в любую сторону почти бесплатно. Дальше цена растёт: 6 мс —
+    <b>−2,40 дБ</b> при косинусе 0,758, 20 мс — <b>−1,49 дБ</b> при 0,843, 24 мс —
+    −2,68 дБ при 0,735. Проверь на любой точке: $20\lg\cos\theta$ совпадает с потерей
+    в точности, потому что это одно и то же число.
+    <br><b>И честно.</b> Виджет считает потерю <i>аналитически</i>, прямо по косинусу между
+    формами — поэтому у него ровно ноль в точке 12 мс. Python-версия меряет её по
+    зашумлённой записи, усредняя отклик по всем разрядам, и получает те же числа
+    с точностью до 0,1 дБ (в точке 12 мс — −0,1 дБ вместо нуля). Совпадение измерения
+    с формулой здесь и есть проверка, что формула верна.</div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Найди по графику диапазон длительностей, в котором потеря не превышает 1 дБ.
+          Во сколько раз он шире и уже истинных 12 мс?</li>
+      <li>Проверь на трёх точках, что потеря действительно равна $20\lg\cos\theta$:
+          виджет показывает и то, и другое.</li>
+      <li>Кривая несимметрична: ошибиться в большую сторону дешевле, чем в меньшую.
+          Объясни почему. (Подсказка: что теряет короткий шаблон, чего не теряет длинный?)</li>
+      <li>Мышца устала, разряды удлинились с 12 до 16 мс, а шаблон остался старым. Сколько
+          децибел потеряно и на сколько при этом упало эффективное ОСШ на выходе?</li>
+      <li>Сформулируй в отчёте, что практичнее: точный шаблон под одного человека или
+          чуть более длинный «средний» шаблон под всех.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ГРАНИЦА ПРИМЕНИМОСТИ ============ -->
+<details class="acc" style="margin-top:18px">
+  <summary>⚠️ Где согласованный фильтр перестаёт быть оптимальным<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">В выводе мы один раз воспользовались тем, что шум
+    <b>белый</b>: только тогда СКО шумового слагаемого равно $\sigma\lVert w\rVert$.
+    Если помеха окрашена — а фоновая ЭМГ соседней мышцы окрашена и вдобавок состоит
+    из точно таких же всплесков, — эта строчка ломается, и вместе с ней ломается
+    оптимальность.</p>
+    <p>Правильный ответ известен и называется <b>обелением</b>. Сначала помеху пропускают
+    через фильтр, делающий её спектр плоским, тем же фильтром обрабатывают шаблон — и уже
+    для обелённой пары строят согласованный фильтр:</p>
+    \[ H_{\text{опт}}(f)=\frac{S^*(f)}{P_n(f)}\,e^{-j2\pi f t_0}, \]
+    <p style="margin-bottom:0">где $P_n(f)$ — спектральная плотность мощности помехи. Белый
+    шум — частный случай: $P_n(f)=\text{const}$, и формула превращается в обычный
+    согласованный фильтр. Это же выражение — сердце
+    <span class="term" data-tip="Фильтр Винера: линейный фильтр, минимизирующий среднеквадратическую ошибку. Строится из спектров сигнала и помехи.">фильтра Винера</span>,
+    и на нём стоит вся адаптивная фильтрация. Третья кривая во втором примере показывает
+    ровно цену того, что мы этого не сделали.</p>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Возьми свой номер и выполни обе части. Частота дискретизации
+  везде 1000 Гц, запись длится 12 секунд.</p>
+  <p style="margin:6px 0"><b>Часть А — выигрыш (на бумаге).</b> Для своей длительности
+  разряда посчитай число отсчётов $M$, оцени энергию $E_s$ и теоретический выигрыш
+  $10\lg E_s$. <b>Запиши в отчёт</b>: (а) $M$ и $E_s$; (б) выигрыш в децибелах;
+  (в) какое ОСШ получится на выходе при твоём ОСШ на входе. Потом поставь свои значения
+  в первый виджет и сверь с измеренным.</p>
+  <p style="margin:6px 0"><b>Часть Б — сравнение и рассогласование (виджеты).</b>
+  <b>Запиши</b>: (г) долю найденных разрядов при одном ложном срабатывании в секунду —
+  для согласованного фильтра и для лучшего окна СКЗ, которое ты подобрал сам;
+  (д) то же для фона ЭМГ вместо белого шума и вывод одной фразой;
+  (е) потерю в децибелах для своего рассогласованного шаблона и косинус между формами.</p>
+  <table>
+    <tr><th>Вариант</th><th>ОСШ на входе</th><th>Длительность разряда</th><th>Разрядов в секунду</th><th>Шаблон в фильтре</th></tr>
+    <tr><td>1</td><td>0 дБ</td><td>8 мс</td><td>10</td><td>12 мс</td></tr>
+    <tr><td>2</td><td>3 дБ</td><td>10 мс</td><td>8</td><td>6 мс</td></tr>
+    <tr><td>3</td><td>6 дБ</td><td>12 мс</td><td>12</td><td>20 мс</td></tr>
+    <tr><td>4</td><td>−3 дБ</td><td>16 мс</td><td>6</td><td>10 мс</td></tr>
+    <tr><td>5</td><td>9 дБ</td><td>20 мс</td><td>15</td><td>28 мс</td></tr>
+    <tr><td>6</td><td>−6 дБ</td><td>24 мс</td><td>5</td><td>16 мс</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Демонстрационный пример (6 дБ, 12 мс, 8 разрядов/с)
+  совпадает с вариантом 3 по двум числам из трёх — но в отчёте нужны твои собственные
+  значения со всех трёх виджетов, а не переписанные из блока «что должно получиться».</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Если форма сигнала известна, лучший линейный обнаружитель — <b>сам сигнал,
+        развёрнутый во времени</b>. Это не эвристика, а следствие неравенства
+        Коши–Буняковского в одну строчку.</li>
+    <li>Выигрыш определяется <b>энергией</b> шаблона и ничем больше: $q=\sqrt{E_s}/\sigma$.
+        Для короткого разряда мышцы это около 7 дБ — маленькая база, маленький выигрыш.</li>
+    <li>Обнаружитель нельзя оценивать одним числом. Порог — это <b>кривая</b> «найдено
+        против ложных срабатываний», и сравнивать надо в одной рабочей точке.</li>
+    <li>Знание формы — это реальная информация, и она даёт куда больше, чем настройка
+        порога по огибающей. Но платить за неточную форму приходится, и цена —
+        ровно $20\lg\cos\theta$.</li>
+    <li>Оптимальность держится на предположении о <b>белом</b> шуме. Когда мешает не шум
+        усилителя, а другая мышца, преимущество почти исчезает — и чинится это обелением,
+        а не подкруткой порога.</li>
+  </ul>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Выведите оценку $q\le\lVert s\rVert/\sigma$ и скажите, при каком условии
+          достигается равенство.</li>
+      <li>Почему импульсную характеристику записывают развёрнутой, $h[k]=s[M-1-k]$?</li>
+      <li>Два всплеска имеют одинаковую энергию, но разную длительность. У какого выигрыш
+          согласованного фильтра больше?</li>
+      <li>Почему в радиолокации согласованный фильтр даёт 25 дБ, а на разряде мышцы — около 7?</li>
+      <li>Что такое кривая обнаружения и почему одного числа «доля найденных» недостаточно?</li>
+      <li>Чем принципиально отличается порог по огибающей СКЗ от согласованного фильтра?</li>
+      <li>Шаблон снят с другого человека и на 30 % короче. Как посчитать потерю в децибелах?</li>
+      <li>В каком месте вывода использовано предположение о белом шуме и что делают,
+          когда оно неверно?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный скрипт <code>solution.py</code> делает то же
+    самое через <code>numpy</code>: <code>np.convolve</code> для самого фильтра, отдельный
+    «шумовой» прогон для честного измерения выигрыша и сортировка локальных максимумов
+    вместо перебора порога. Для работы он не нужен — всё важное есть в примерах выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 2 · дальше: E10 — декодирование ЭМГ в реальном времени
+</p>
+
+</div>
+
+<script>
+  /* ---------- генератор сигнала: разряд, интерференционная ЭМГ, белый шум ---------- */
+  var SIG = (function(){
+    function lcg(seed){
+      var s = seed >>> 0;
+      return function(){ s = (s*1103515245 + 12345) & 0x7fffffff; return s / 0x7fffffff; };
+    }
+    // нормальный отсчёт из равномерного — преобразование Бокса–Мюллера
+    function gauss(rnd){
+      var u = Math.max(rnd(), 1e-12), v = rnd();
+      return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+    }
+    // один разряд двигательной единицы: производная гауссианы длиной ms миллисекунд
+    function muap(fs, ms){
+      var half = Math.max(2, Math.round(ms/1000*fs/2)), n = 2*half+1;
+      var sg = n/6, k = new Float64Array(n), mx = 0, i, t, v;
+      for(i=0;i<n;i++){
+        t = i - half;
+        v = -(t/(sg*sg)) * Math.exp(-t*t/(2*sg*sg));
+        k[i] = v; if(Math.abs(v) > mx) mx = Math.abs(v);
+      }
+      for(i=0;i<n;i++) k[i] /= mx;
+      return k;
+    }
+    // интерференционная ЭМГ: сумма разрядов нескольких единиц, СКЗ = 1
+    function emg(N, fs, seed, units){
+      var rnd = lcg(seed), x = new Float64Array(N + 64), k = muap(fs, 10), j, u;
+      for(u=0; u<(units || 12); u++){
+        var rate = 8 + 12*rnd(), amp = 0.5 + rnd(), step = fs/rate, pos = rnd()*step;
+        while(pos < N){
+          var at = Math.round(pos);
+          for(j=0;j<k.length && at+j < x.length;j++) x[at+j] += amp*k[j];
+          pos += step*(0.75 + 0.5*rnd());
+        }
+      }
+      return unit(x.subarray(0, N));
+    }
+    // белый шум с СКЗ = 1
+    function white(N, seed){
+      var rnd = lcg(seed), x = new Float64Array(N), i;
+      for(i=0;i<N;i++) x[i] = gauss(rnd);
+      return unit(x);
+    }
+    // приведение к единичному СКЗ — чтобы «та же мощность помехи» значило именно то же
+    function unit(x){
+      var N = x.length, y = new Float64Array(N), acc = 0, i;
+      for(i=0;i<N;i++){ y[i] = x[i]; acc += x[i]*x[i]; }
+      var r = Math.sqrt(acc/N) || 1;
+      for(i=0;i<N;i++) y[i] /= r;
+      return y;
+    }
+    return { lcg: lcg, muap: muap, emg: emg, white: white, unit: unit };
+  })();
+
+  /* ---------- обнаружение: фильтр, огибающая, кривая обнаружения ---------- */
+  var DET = (function(){
+    function norm(s){ var a = 0, i; for(i=0;i<s.length;i++) a += s[i]*s[i]; return Math.sqrt(a); }
+    function energy(s){ var a = 0, i; for(i=0;i<s.length;i++) a += s[i]*s[i]; return a; }
+    function std(x){ var a = 0, i; for(i=0;i<x.length;i++) a += x[i]*x[i]; return Math.sqrt(a/x.length); }
+    // согласованный фильтр, центрированный: пик приходится на середину разряда,
+    // а не на его начало — иначе сравнение с огибающей было бы нечестным
+    function matched(x, s){
+      var N = x.length, M = s.length, c = (M-1)>>1, nr = norm(s) || 1;
+      var y = new Float64Array(N), n, k, acc, i;
+      for(n=0;n<N;n++){
+        acc = 0;
+        for(k=0;k<M;k++){ i = n + k - c; if(i >= 0 && i < N) acc += s[k]*x[i]; }
+        y[n] = acc/nr;
+      }
+      return y;
+    }
+    // скользящее СКЗ окном w отсчётов, центрированное
+    function rmsEnv(x, w){
+      var N = x.length, y = new Float64Array(N), h = w >> 1, acc = 0, i, a, b;
+      for(i=0;i<N;i++){
+        a = i - h; b = a + w;
+        if(i === 0){ acc = 0; for(var j=Math.max(0,a); j<Math.min(N,b); j++) acc += x[j]*x[j]; }
+        else {
+          var out = a - 1, inn = b - 1;
+          if(out >= 0 && out < N) acc -= x[out]*x[out];
+          if(inn >= 0 && inn < N) acc += x[inn]*x[inn];
+        }
+        y[i] = Math.sqrt(acc/w);
+      }
+      return y;
+    }
+    // локальные максимумы — кандидаты в обнаружения
+    function peaks(v){
+      var p = [], i;
+      for(i=1;i<v.length-1;i++) if(v[i] >= v[i-1] && v[i] > v[i+1]) p.push(i);
+      return p;
+    }
+    // кривая обнаружения: сортировка кандидатов по убыванию = перебор порога сверху вниз
+    function curve(v, truth, tol, seconds){
+      var N = v.length, mark = new Int32Array(N), j, d, p;
+      for(j=0;j<N;j++) mark[j] = -1;
+      for(j=0;j<truth.length;j++)
+        for(d=-tol; d<=tol; d++){ p = truth[j]+d; if(p >= 0 && p < N && mark[p] < 0) mark[p] = j; }
+      var cand = peaks(v);
+      cand.sort(function(a,b){ return v[b] - v[a]; });
+      var used = new Uint8Array(truth.length), tp = 0, fp = 0;
+      var xs = [0], ys = [0], thr = [Infinity], t;
+      for(t=0;t<cand.length;t++){
+        p = cand[t]; j = mark[p];
+        if(j >= 0){ if(used[j]) continue; used[j] = 1; tp++; }
+        else fp++;
+        xs.push(fp/seconds); ys.push(tp/Math.max(1, truth.length)); thr.push(v[p]);
+      }
+      return { fa: xs, hit: ys, thr: thr };
+    }
+    // доля найденных при заданном числе ложных срабатываний в секунду
+    function hitAt(c, rate){
+      var best = 0, i;
+      for(i=0;i<c.fa.length;i++){ if(c.fa[i] > rate) break; best = c.hit[i]; }
+      return best;
+    }
+    // порог, при котором достигается это число ложных
+    function thrAt(c, rate){
+      var t = Infinity, i;
+      for(i=0;i<c.fa.length;i++){ if(c.fa[i] > rate) break; t = c.thr[i]; }
+      return t;
+    }
+    return { norm: norm, energy: energy, std: std, matched: matched, rmsEnv: rmsEnv,
+             peaks: peaks, curve: curve, hitAt: hitAt, thrAt: thrAt };
+  })();
+
+  /* ---------- общие мелочи отрисовки ---------- */
+  function CSSV(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function FMT(x, d){ var p = Math.pow(10, d === undefined ? 2 : d);
+    return (Math.round(x*p)/p).toString().replace('.', ','); }
+  var RED = '#d93025', VIO = '#8e44ad';
+  // «13 отсчётов», но «321 отсчёт» и «22 отсчёта» — иначе читается неряшливо
+  function SAMP(n){
+    var t = n % 10, h = n % 100;
+    if(t === 1 && h !== 11) return n + ' отсчёт';
+    if(t >= 2 && t <= 4 && (h < 12 || h > 14)) return n + ' отсчёта';
+    return n + ' отсчётов';
+  }
+
+  // рамка с осями: возвращает X(v), Y(v) и поля
+  function axes(ctx, W, H, x1, x2, y1, y2, o){
+    o = o || {};
+    var line = CSSV('--line'), muted = CSSV('--muted');
+    var padL = (o.padL === undefined) ? 46 : o.padL, padR = 12, padT = 12, padB = 24;
+    function X(v){ return padL + (v - x1)/(x2 - x1)*(W - padL - padR); }
+    function Y(v){ return H - padB - (v - y1)/(y2 - y1)*(H - padT - padB); }
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(padL, padT); ctx.lineTo(padL, H-padB); ctx.lineTo(W-padR, H-padB); ctx.stroke();
+    ctx.font = '11px sans-serif';
+    var xs = o.xstep || (x2 - x1)/5, ys = o.ystep || (y2 - y1)/4, v;
+    ctx.textAlign = 'center';
+    for(v = x1; v <= x2 + 1e-9; v += xs){
+      ctx.fillStyle = muted; ctx.fillText(FMT(v, o.xdec === undefined ? 0 : o.xdec), X(v), H-7);
+      ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(X(v), padT); ctx.lineTo(X(v), H-padB); ctx.stroke();
+    }
+    ctx.textAlign = 'right';
+    for(v = y1; v <= y2 + 1e-9; v += ys){
+      ctx.fillStyle = muted; ctx.fillText(FMT(v, o.ydec === undefined ? 1 : o.ydec), padL-5, Y(v)+4);
+      ctx.strokeStyle = line; ctx.beginPath(); ctx.moveTo(padL, Y(v)); ctx.lineTo(W-padR, Y(v)); ctx.stroke();
+    }
+    if(o.xlabel){ ctx.textAlign = 'right'; ctx.fillStyle = muted; ctx.fillText(o.xlabel, W-padR, H-7); }
+    return { X: X, Y: Y, padL: padL, padR: padR, padT: padT, padB: padB, y0: H-padB };
+  }
+
+  // ломаная по массивам
+  function poly(ctx, fr, xs, ys, color, width){
+    ctx.strokeStyle = color; ctx.lineWidth = width || 1.6; ctx.beginPath();
+    for(var i=0;i<xs.length;i++){
+      var px = fr.X(xs[i]), py = fr.Y(ys[i]);
+      (i === 0) ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  // отрезок сигнала во времени: v[from..to] на всю ширину
+  function wave(ctx, fr, v, from, to, fs, color, width){
+    ctx.strokeStyle = color; ctx.lineWidth = width || 1; ctx.beginPath();
+    for(var i=from;i<to && i<v.length;i++){
+      var px = fr.X((i - from)/fs), py = fr.Y(v[i]);
+      (i === from) ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+  }
+
+  function hline(ctx, fr, W, y, color, dash){
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(fr.padL, fr.Y(y)); ctx.lineTo(W - fr.padR, fr.Y(y)); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function vline(ctx, fr, H, x, color, dash){
+    ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.setLineDash(dash || []);
+    ctx.beginPath(); ctx.moveTo(fr.X(x), fr.padT); ctx.lineTo(fr.X(x), fr.y0); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  /* ---------- переключатель темы ---------- */
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    if(!btn) return;
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redraw) window.__redraw();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){ apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); });
+  })();
+
+  /* ---------- общие параметры записи ---------- */
+  var FS = 1000, SEC = 12, N = FS*SEC, TOL = 8, SEED = 20260826;
+
+  // собирает запись: разряды известной формы + помеха заданной мощности
+  function record(ms, rate, sigma, bg){
+    var s = SIG.muap(FS, ms), M = s.length, c = (M-1) >> 1;
+    var rnd = SIG.lcg(SEED), clean = new Float64Array(N), centers = [];
+    var pos = rnd()*FS/rate, j, at;
+    while(pos < N - M){
+      at = Math.round(pos);
+      for(j=0;j<M;j++) clean[at+j] += s[j];
+      centers.push(at + c);
+      pos += (FS/rate)*(0.75 + 0.5*rnd());
+    }
+    var noise = (bg === 'emg') ? SIG.emg(N, FS, SEED + 7, 14) : SIG.white(N, SEED + 3);
+    var x = new Float64Array(N), scaled = new Float64Array(N), i;
+    for(i=0;i<N;i++){ scaled[i] = sigma*noise[i]; x[i] = clean[i] + scaled[i]; }
+    return { s: s, M: M, c: c, x: x, noise: scaled, centers: centers, sigma: sigma };
+  }
+
+  /* ---------- виджет базы сигнала (внутри вывода) ---------- */
+  (function(){
+    var gm = document.getElementById('g_ms');
+    if(!gm) return;
+    var gmv = document.getElementById('g_msv'), gf = document.getElementById('g_fs'),
+        gfv = document.getElementById('g_fsv'), out = document.getElementById('g_out'),
+        cv = document.getElementById('g_gain');
+    var RATES = [500, 1000, 2000, 4000, 8000];
+
+    function gain(fs, ms){ return 10*Math.log(DET.energy(SIG.muap(fs, ms)))/Math.LN10; }
+
+    function update(){
+      var ms = +gm.value, fs = RATES[+gf.value];
+      gmv.textContent = ms + ' мс';
+      gfv.textContent = fs + ' Гц';
+      var s = SIG.muap(fs, ms), E = DET.energy(s), g = 10*Math.log(E)/Math.LN10;
+
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      var xs = [], ys = [], mm;
+      for(mm=4; mm<=40; mm++){ xs.push(mm); ys.push(gain(fs, mm)); }
+      var lo = 0, hi = Math.ceil(Math.max.apply(null, ys)/3)*3;
+      var fr = axes(ctx, W, H, 4, 40, lo, hi, {xstep: 4, ystep: 3, ydec: 0, xlabel: 'мс'});
+      poly(ctx, fr, xs, ys, CSSV('--accent'), 2.1);
+      vline(ctx, fr, H, ms, RED, [4,4]);
+      ctx.fillStyle = RED;
+      ctx.beginPath(); ctx.arc(fr.X(ms), fr.Y(g), 4.5, 0, 2*Math.PI); ctx.fill();
+
+      var s2 = SIG.muap(fs, 2*ms), add = 10*Math.log(DET.energy(s2))/Math.LN10 - g;
+      out.className = 'readout ok';
+      out.innerHTML =
+        'Разряд ' + ms + ' мс при ' + fs + ' Гц — это <span class="big">' + SAMP(s.length) +
+        '</span>, энергия E<sub>s</sub> = <span class="big">' + FMT(E, 2) +
+        '</span>, ‖s‖ = ' + FMT(Math.sqrt(E), 2) + '. Выигрыш = 10·lg E<sub>s</sub> = ' +
+        '<span class="big">' + FMT(g, 1) + ' дБ</span>. ' +
+        (s2.length === s.length
+          ? 'Удвой длительность — и ничего не изменится: при такой F<sub>д</sub> в шаблон ' +
+            'не добавится ни одного отсчёта. Сетка слишком редкая.'
+          : 'Удвой длительность — прибавится примерно ' + FMT(add, 1) + ' дБ, не больше.');
+    }
+    gm.addEventListener('input', update);
+    gf.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 1: согласованный фильтр ---------- */
+  (function(){
+    var ms = document.getElementById('m_ms');
+    if(!ms) return;
+    var msv = document.getElementById('m_msv'), sn = document.getElementById('m_snr'),
+        snv = document.getElementById('m_snrv'), rt = document.getElementById('m_rate'),
+        rtv = document.getElementById('m_ratev'), th = document.getElementById('m_thr'),
+        thv = document.getElementById('m_thrv');
+    var out1 = document.getElementById('m_out1'), out2 = document.getElementById('m_out2');
+    var cIn = document.getElementById('mIn'), cOut = document.getElementById('mOut');
+    var VIEW = 2*FS;                                   // показываем первые две секунды
+
+    function update(){
+      var msv_ = +ms.value, snr = +sn.value, rate = +rt.value, k = +th.value;
+      msv.textContent = msv_ + ' мс';
+      snv.textContent = snr + ' дБ';
+      rtv.textContent = rate + '';
+      thv.textContent = FMT(k, 1) + ' σ';
+
+      var sigma = Math.pow(10, -snr/20);
+      var R = record(msv_, rate, sigma, 'white');
+      var y = DET.matched(R.x, R.s);
+      var yn = DET.matched(R.noise, R.s);                // тот же фильтр, только шум
+      var sOut = DET.std(yn);
+      var nrm = DET.norm(R.s), E = nrm*nrm;
+
+      // отклик в истинных точках
+      var i, acc = 0, cnt = 0;
+      for(i=0;i<R.centers.length;i++){ if(R.centers[i] < N){ acc += y[R.centers[i]]; cnt++; } }
+      var mean = cnt ? acc/cnt : 0;
+      var snrIn = 1/sigma, snrOut = mean/sOut;
+      var gainTh = 20*Math.log(nrm)/Math.LN10;
+      var gainMe = 20*Math.log(snrOut/snrIn)/Math.LN10;
+
+      // сколько разрядов взято порогом и сколько ложных
+      var lvl = k*sOut, cand = DET.peaks(y), mark = new Int32Array(N), d, p, j;
+      for(j=0;j<N;j++) mark[j] = -1;
+      for(j=0;j<R.centers.length;j++)
+        for(d=-TOL; d<=TOL; d++){ p = R.centers[j]+d; if(p>=0 && p<N && mark[p]<0) mark[p] = j; }
+      var used = new Uint8Array(R.centers.length), hits = 0, fps = 0;
+      for(i=0;i<cand.length;i++){
+        p = cand[i]; if(y[p] < lvl) continue;
+        j = mark[p];
+        if(j >= 0){ if(!used[j]){ used[j] = 1; hits++; } }
+        else fps++;
+      }
+
+      // ---- верхний график: сама запись
+      var ctx = cIn.getContext('2d'), W = cIn.width, H = cIn.height;
+      ctx.clearRect(0, 0, W, H);
+      var amp = Math.max(1.2, 4*sigma);
+      var fr = axes(ctx, W, H, 0, VIEW/FS, -amp, amp, {xstep: 0.25, ystep: amp/2, xdec: 2, xlabel: 'с'});
+      wave(ctx, fr, R.x, 0, VIEW, FS, CSSV('--muted'), 1);
+      ctx.strokeStyle = CSSV('--ok'); ctx.lineWidth = 2;
+      for(i=0;i<R.centers.length;i++){
+        if(R.centers[i] >= VIEW) break;
+        var px = fr.X(R.centers[i]/FS);
+        ctx.beginPath(); ctx.moveTo(px, fr.y0); ctx.lineTo(px, fr.y0 - 12); ctx.stroke();
+      }
+
+      // ---- нижний график: выход фильтра
+      ctx = cOut.getContext('2d'); W = cOut.width; H = cOut.height;
+      ctx.clearRect(0, 0, W, H);
+      var ampo = Math.max(1.2*Math.abs(mean), 4*sOut);
+      fr = axes(ctx, W, H, 0, VIEW/FS, -ampo, ampo, {xstep: 0.25, ystep: ampo/2, xdec: 2, xlabel: 'с'});
+      wave(ctx, fr, y, 0, VIEW, FS, CSSV('--accent'), 1.1);
+      hline(ctx, fr, W, lvl, RED, [5,4]);
+
+      out1.className = 'readout ok';
+      out1.innerHTML =
+        'Шаблон: <span class="big">' + SAMP(R.M) + '</span>, E<sub>s</sub> = ' + FMT(E, 2) +
+        ', ‖s‖ = ' + FMT(nrm, 2) + '. Теоретический выигрыш 20·lg‖s‖ = <span class="big">+' +
+        FMT(gainTh, 1) + ' дБ</span>. Разрядов в записи: ' + R.centers.length + ' за ' + SEC + ' с.';
+
+      var ok = Math.abs(gainMe - gainTh) < 1.0;
+      out2.className = ok ? 'readout' : 'readout bad';
+      out2.innerHTML =
+        'ОСШ на входе ' + FMT(snr, 1) + ' дБ → на выходе <span class="big">' +
+        FMT(20*Math.log(snrOut)/Math.LN10, 1) + ' дБ</span>, то есть измеренный выигрыш ' +
+        '<span class="big">' + (gainMe >= 0 ? '+' : '') + FMT(gainMe, 1) + ' дБ</span>' +
+        (ok ? ' — сходится с теорией.'
+            : ' — расходится с теорией больше чем на децибел: посмотри, не идут ли разряды ' +
+              'так часто, что в окне фильтра их уже несколько.') +
+        ' Порог ' + FMT(k, 1) + 'σ находит <span class="big">' + hits + '</span> из ' +
+        R.centers.length + ' (' + FMT(100*hits/R.centers.length, 0) + ' %) ценой ' + fps +
+        ' ложных срабатываний, это ' + FMT(fps/SEC, 2) + ' в секунду.';
+    }
+    [ms, sn, rt, th].forEach(function(el){ el.addEventListener('input', update); });
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 2: кривая обнаружения ---------- */
+  (function(){
+    var sn = document.getElementById('c_snr');
+    if(!sn) return;
+    var snv = document.getElementById('c_snrv'), wn = document.getElementById('c_win'),
+        wnv = document.getElementById('c_winv');
+    var out1 = document.getElementById('c_out1'), out2 = document.getElementById('c_out2');
+    var cv = document.getElementById('cRoc');
+    var MS = 12, RATE = 8, FAMAX = 5;
+
+    function update(){
+      var snr = +sn.value, win = +wn.value;
+      snv.textContent = snr + ' дБ';
+      wnv.textContent = win + ' мс';
+
+      var sigma = Math.pow(10, -snr/20);
+      var W_ = record(MS, RATE, sigma, 'white'), Em = record(MS, RATE, sigma, 'emg');
+      var yW = DET.matched(W_.x, W_.s), yE = DET.matched(Em.x, Em.s);
+      var env = DET.rmsEnv(W_.x, Math.max(2, Math.round(win/1000*FS)));
+
+      var cW = DET.curve(yW, W_.centers, TOL, SEC);
+      var cE = DET.curve(yE, Em.centers, TOL, SEC);
+      var cR = DET.curve(env, W_.centers, TOL, SEC);
+
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      var fr = axes(ctx, W, H, 0, FAMAX, 0, 1, {xstep: 1, ystep: 0.2, xdec: 0, ydec: 1,
+                                                xlabel: 'ложных срабатываний в секунду'});
+      poly(ctx, fr, cR.fa, cR.hit, CSSV('--warn'), 1.8);
+      poly(ctx, fr, cE.fa, cE.hit, VIO, 1.8);
+      poly(ctx, fr, cW.fa, cW.hit, CSSV('--accent'), 2.1);
+      vline(ctx, fr, H, 1, RED, [2,3]);
+
+      var hW = DET.hitAt(cW, 1), hR = DET.hitAt(cR, 1), hE = DET.hitAt(cE, 1);
+      out1.className = 'readout ok';
+      out1.innerHTML =
+        'При одном ложном срабатывании в секунду: согласованный фильтр находит ' +
+        '<span class="big">' + FMT(100*hW, 0) + ' %</span> разрядов, порог по огибающей СКЗ ' +
+        '(' + win + ' мс) — <span class="big">' + FMT(100*hR, 0) + ' %</span>. ' +
+        'Запись одна и та же, счёт ошибок одинаковый. Подбери окно СКЗ: разрыв ' +
+        'уменьшится, но не исчезнет.';
+
+      out2.className = (hE < 0.5*hW) ? 'readout bad' : 'readout';
+      out2.innerHTML =
+        'Тот же фильтр на фоне ЭМГ той же мощности находит только <span class="big">' +
+        FMT(100*hE, 0) + ' %</span>. Помеха перестала быть белой — и вывод, где мы делили ' +
+        'на σ‖w‖, перестал быть верным. Оптимальный ответ здесь не «согласованный фильтр», ' +
+        'а «обеление, потом согласованный фильтр».';
+    }
+    wn.addEventListener('input', update);
+    sn.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+
+  /* ---------- виджет 3: рассогласование шаблона ---------- */
+  (function(){
+    var tm = document.getElementById('t_ms');
+    if(!tm) return;
+    var tmv = document.getElementById('t_msv'), sn = document.getElementById('t_snr'),
+        snv = document.getElementById('t_snrv');
+    var out = document.getElementById('t_out'), out2 = document.getElementById('t_out2');
+    var cv = document.getElementById('tLoss');
+    var TRUE_MS = 12, LONG = 81;
+
+    // обе формы кладём в общее окно, совмещая середины: разная длительность должна
+    // остаться разницей, а не быть стёрта общей нормировкой по длине
+    function centered(v){
+      var out_ = new Float64Array(LONG), st = (LONG - v.length) >> 1, i;
+      for(i=0;i<v.length;i++){ var p = st + i; if(p >= 0 && p < LONG) out_[p] = v[i]; }
+      return out_;
+    }
+    function cosOf(ms){
+      var a = centered(SIG.muap(FS, TRUE_MS)), b = centered(SIG.muap(FS, ms));
+      var d = 0, i;
+      for(i=0;i<LONG;i++) d += a[i]*b[i];
+      return d/(DET.norm(a)*DET.norm(b));
+    }
+
+    function update(){
+      var ms = +tm.value, snr = +sn.value;
+      tmv.textContent = ms + ' мс';
+      snv.textContent = snr + ' дБ';
+
+      var xs = [], ys = [], m, c;
+      for(m=4; m<=30; m++){ xs.push(m); ys.push(20*Math.log(Math.max(1e-6, cosOf(m)))/Math.LN10); }
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0, 0, W, H);
+      var lo = Math.floor(Math.min.apply(null, ys));
+      var fr = axes(ctx, W, H, 4, 30, lo, 0, {xstep: 2, ystep: Math.max(1, Math.ceil(-lo/6)),
+                                              xdec: 0, ydec: 0, xlabel: 'мс'});
+      poly(ctx, fr, xs, ys, CSSV('--accent'), 2.1);
+      vline(ctx, fr, H, TRUE_MS, CSSV('--ok'), [5,4]);
+      hline(ctx, fr, W, -1, RED, [2,3]);
+      c = cosOf(ms);
+      var loss = 20*Math.log(Math.max(1e-6, c))/Math.LN10;
+      ctx.fillStyle = RED;
+      ctx.beginPath(); ctx.arc(fr.X(ms), fr.Y(loss), 4.5, 0, 2*Math.PI); ctx.fill();
+
+      // диапазон, где потеря не хуже 1 дБ
+      var lo1 = null, hi1 = null, i;
+      for(i=0;i<xs.length;i++){ if(ys[i] >= -1){ if(lo1 === null) lo1 = xs[i]; hi1 = xs[i]; } }
+
+      out.className = (loss > -1) ? 'readout ok' : 'readout bad';
+      out.innerHTML =
+        'Шаблон ' + ms + ' мс против истинных ' + TRUE_MS + ' мс: косинус между формами ' +
+        '<span class="big">' + FMT(c, 3) + '</span>, потеря 20·lg cos = <span class="big">' +
+        FMT(loss, 2) + ' дБ</span>' +
+        (loss > -1 ? ' — меньше децибела, практически даром.'
+                   : ' — уже заметно, шаблон стоит уточнить.') +
+        ' Потеря не хуже 1 дБ в диапазоне от ' + lo1 + ' до ' + hi1 + ' мс.';
+
+      var gainTh = 10*Math.log(DET.energy(SIG.muap(FS, TRUE_MS)))/Math.LN10;
+      out2.className = 'readout';
+      out2.innerHTML =
+        'В пересчёте на выход: ОСШ ' + FMT(snr, 1) + ' дБ + выигрыш ' + FMT(gainTh, 1) +
+        ' дБ ' + (loss < 0 ? '− ' + FMT(-loss, 2) : '+ ' + FMT(loss, 2)) +
+        ' дБ потери = <span class="big">' + FMT(snr + gainTh + loss, 1) + ' дБ</span>. ' +
+        'Точный шаблон дал бы ' + FMT(snr + gainTh, 1) + ' дБ.';
+    }
+    tm.addEventListener('input', update);
+    sn.addEventListener('input', update);
+    var prev = window.__redraw;
+    window.__redraw = function(){ if(prev) prev(); update(); };
+    update();
+  })();
+</script>
+
+</body>
+</html>
