@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E8 — Честная проверка модели: почему точность на «своих» данных обманывает</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --bad:#d64550; --bad-soft:#fbe9ea;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+    --c1:#2d6cdf; --c2:#d9822b; --c3:#0f9d58; --c4:#a24bd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --bad:#f0727d; --bad-soft:#2c1416;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+    --c1:#6ea0ff; --c2:#e0a45f; --c3:#4cc98a; --c4:#c07ff0;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl select{flex:1; padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px;}
+  .ctrl .val{flex:0 0 70px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--bad-soft); border-color:var(--bad);}
+  .readout.warn{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+
+  /* переключатель схем — сегментированные кнопки */
+  .segs{display:flex; gap:8px; flex-wrap:wrap; margin:6px 0 8px;}
+  .seg{flex:1 1 auto; min-width:150px; cursor:pointer; text-align:center;
+    padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--card); color:var(--ink); font-size:14px; font-weight:600;
+    transition:transform .12s, border-color .15s, background .15s;}
+  .seg:hover{transform:translateY(-1px);}
+  .seg.active{border-color:var(--accent); background:var(--accent-soft);}
+  .seg small{display:block; font-weight:400; color:var(--muted); font-size:12px; margin-top:2px;}
+
+  /* большая цифра точности */
+  .accbig{font-size:52px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums;}
+  .accwrap{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E8</span>
+  <h1>Честная проверка модели — почему точность на «своих» данных обманывает</h1>
+  <p>Серия «синус → протез» · часть 2 · одна тема: как проверить классификатор так, чтобы протез не развалился на настоящем новом пользователе</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> в E7 мы обучили классификатор различать жесты и получили
+    красивую высокую точность. Но эта цифра <b>врёт</b>, если проверять модель на тех же данных,
+    на которых учили. Настоящий вопрос протезирования другой: <i>заработает ли модель на
+    <b>новой</b> записи, а тем более на <b>новом человеке</b>?</i> Как только проверяешь честно —
+    точность обваливается. Именно этот обвал убивает протезы вживую, и называется он
+    <span class="term" data-tip="Переобучение: модель выучила частности обучающей выборки (конкретные окна, конкретного человека), а не общий признак жеста. На новых данных ошибается.">переобучением</span>.
+  </p>
+  <p style="margin-bottom:0">
+    Цель работы — <b>не запустить код</b>, а увидеть три вещи: почему <b>случайный сплит
+    внутри одной записи</b> завышает точность (там прячется
+    <span class="term" data-tip="Утечка данных (data leakage): в тест попадает информация из обучения. Здесь — соседние перекрывающиеся окна почти одинаковы, поэтому тест «подсмотрел» ответы.">утечка данных</span>);
+    почему <b>кросс-сессия</b> честнее, а <b>кросс-субъект</b> — самое честное; и почему на новом
+    человеке та же модель падает с ~90% почти до уровня угадывания. Три схемы — одна и та же модель,
+    меняется только <b>как мы делим данные на train и test</b>.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0"><b>Модель одна, проверки — три.</b> Мы берём тот же классификатор из E7
+  (нормировка + <span class="term" data-tip="LDA — линейный дискриминантный анализ: проводит разделяющие границы между классами в пространстве признаков.">LDA</span>)
+  и меняем только <b>как формируем train и test</b>:</p>
+  <table>
+    <tr><th><span class="term" data-tip="Валидация: проверка модели на отложенных данных, чтобы честно оценить, как она сработает на новых. Способ деления данных решает, честна ли оценка.">Схема валидации</span></th><th>Train</th><th>Test</th><th>Насколько честно</th></tr>
+    <tr><td><b>Внутри записи</b><br>(случайный сплит)</td><td>случайные 70% окон одной записи</td><td>оставшиеся 30% <b>той же</b> записи</td><td>🔴 нечестно — утечка</td></tr>
+    <tr><td><b><span class="term" data-tip="Кросс-сессия: обучаемся на одной записи (сессии), проверяем на ДРУГОЙ записи того же человека. Честнее — тест независим от обучения.">Кросс-сессия</span></b></td><td>серия 1 человека</td><td>серия 2 <b>того же</b> человека</td><td>🟡 честнее</td></tr>
+    <tr><td><b><span class="term" data-tip="Кросс-субъект: обучаемся на одних людях, проверяем на ДРУГИХ. Самое честное для протеза — пользователь всегда новый человек.">Кросс-субъект</span></b></td><td>человек 01</td><td>человек 02 (<b>новый</b>)</td><td>🟢 самое честное</td></tr>
+  </table>
+  <p style="margin:6px 0"><b>Точность</b> — доля правильно угаданных окон в тесте:</p>
+  \[ \text{acc}=\frac{\text{верно угаданных окон}}{\text{всего окон в тесте}}. \]
+  <p style="margin-bottom:0">Чем ближе тест к «настоящей жизни» (новая запись, новый человек), тем
+  честнее оценка — и тем ниже цифра. Разница между схемами и есть мера
+  <span class="term" data-tip="Переобучение: разрыв между точностью на обучении и на честном тесте. Большой разрыв = модель выучила частности, а не жест.">переобучения</span>.</p>
+  <div class="note" style="margin-bottom:0"><b>Главный урок протеза.</b> Пользователь протеза —
+  всегда «новый человек» для модели, обученной на других. Значит честная цель — не 99% на своих,
+  а живучесть на кросс-субъекте.</div>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 · переключатель схем + confusion matrix ============ -->
+<div class="lab">
+  <h3>Виджет 1 · Одна модель — три проверки (данные MYO, реальные)</h3>
+  <p style="margin-top:2px">Один и тот же классификатор. Переключай <b>схему проверки</b> — смотри,
+  как меняется точность (большая цифра) и
+  <span class="term" data-tip="Confusion matrix (матрица ошибок): строка — истинный жест, столбец — что предсказала модель. Диагональ (верные ответы) должна быть яркой.">матрица ошибок</span>
+  ниже. На «кросс-субъект» цифра обваливается, а матрица «расплывается» с диагонали — это провал
+  переноса на нового человека.</p>
+  <div class="segs" id="v1_segs">
+    <div class="seg active" data-k="within">Внутри записи<small>случайный сплит · 🔴</small></div>
+    <div class="seg" data-k="cross_session">Кросс-сессия<small>серия 1 → серия 2 · 🟡</small></div>
+    <div class="seg" data-k="cross_subject">Кросс-субъект<small>чел.01 → чел.02 · 🟢</small></div>
+  </div>
+  <div class="readout ok" id="v1_out">
+    <div class="accwrap"><span class="accbig" id="v1_acc">—</span><span id="v1_msg"></span></div>
+  </div>
+  <canvas id="v1_cm" class="scope" width="840" height="430"></canvas>
+  <div class="legend">Строка — <b>истинный</b> жест; столбец — <b>предсказанный</b>. Яркая диагональ = верно.
+    Ячейки — доля строки (сумма строки = 100%).</div>
+  <div class="tasklist">
+    <b>Задания (переключай схемы):</b>
+    <ol style="margin:6px 0 0">
+      <li>Запиши точность всех трёх схем. На сколько процентов кросс-субъект ниже, чем «внутри записи»?</li>
+      <li>Смотри на диагональ матрицы: в какой схеме она самая яркая, в какой «размывается»?</li>
+      <li>На кросс-субъекте найди жест, у которого модель почти всегда угадывает <b>другой</b> жест.
+          Куда «утекают» его окна (в какой столбец)?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 · оптимизм vs реальность ============ -->
+<div class="lab">
+  <h3>Виджет 2 · Оптимизм против реальности</h3>
+  <p style="margin-top:2px">Три точности рядом. Слева — красивая, но <b>нечестная</b> оценка;
+  справа — суровая честная. Обвал видно с одного взгляда: именно эту разницу «не заметили»
+  многие протезы, которые отлично работали в статье и разваливались на пациенте.</p>
+  <canvas id="v2_bars" class="scope" width="840" height="340"></canvas>
+  <div class="legend">🔴 внутри записи (оптимизм) · 🟡 кросс-сессия · 🟢 кросс-субъект (реальность).
+    Пунктир — уровень <span class="term" data-tip="Случайное угадывание: если жестов K, наугад попадёшь примерно в 1/K случаев.">случайного угадывания</span> (1/K).</div>
+  <div class="lab" style="margin:12px 0 4px; background:var(--bg)">
+    <div class="controls">
+      <div class="ctrl"><label><span class="term" data-tip="Сколько РАЗНЫХ людей в обучении. Больше доноров → модель видит больше вариаций → меньше обвал на новом человеке (но не до within).">Людей в обучении</span></label><input type="range" id="v2_k" min="1" max="8" step="1" value="1"><span class="val" id="v2_kv">1</span></div>
+    </div>
+    <div class="readout warn" id="v2_out"></div>
+  </div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Во сколько раз «внутри записи» оптимистичнее кросс-субъекта?</li>
+      <li>Двигай <b>«Людей в обучении»</b>: растёт ли кросс-субъект-точность? Догоняет ли она
+          когда-нибудь «внутри записи»? Почему нет?</li>
+      <li>Сравни кросс-субъект при 1 доноре с уровнем случайного угадывания. Модель на новом
+          человеке — это «умно» или «чуть лучше монетки»?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему случайный сплит завышает точность — и почему падает на новом человеке<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Обвал — не случайность и не «плохая модель». За ним стоят две простые
+    причины: <b>утечка данных</b> (близкие окна протекают из train в test) и <b>смещение
+    распределения</b> (у другого человека признаки лежат по-другому). Двигай ползунок ниже —
+    иллюстрации покажут оба механизма.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Насколько сильно распределение признаков нового человека сдвинуто относительно того, на ком учили. 0 — тот же человек; больше — «чужой».">Сдвиг между людьми</span></label><input type="range" id="d_shift" min="0" max="1.6" step="0.05" value="0.0"><span class="val" id="d_shiftv">0,00</span></div>
+      </div>
+      <div class="readout ok" id="d_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Причина 1 · утечка данных: соседние окна почти одинаковы</h3>
+    <p style="margin-top:2px">Сигнал режут на окна <b>с перекрытием</b> (в E6 — окно 200 мс, шаг
+    100 мс: соседние окна делят половину отсчётов). Значит соседние окна почти <b>копии</b> друг
+    друга. Если перемешать все окна и случайно раскидать в train и test, то у почти каждого
+    тестового окна в train лежит его «близнец». Модель не <b>обобщила</b> жест — она просто
+    <b>вспомнила</b> соседа. Это и есть утечка: тест «подсмотрел» ответы.</p>
+    <canvas id="d_leak" class="scope" width="840" height="170"></canvas>
+    <div class="legend" style="margin-bottom:12px">
+      <span style="color:var(--accent)">■</span> окно в train ·
+      <span style="color:var(--warn)">■</span> окно в test. Видно: тестовые окна зажаты между
+      обучающими «близнецами» — тест почти не независим. Честнее делить <b>по записям/людям</b>,
+      а не по окнам.</div>
+
+    <h3>Причина 2 · смещение распределения: другой человек — другие облака</h3>
+    <p style="margin-top:2px">Признаки одного жеста у разных людей лежат <b>по-разному</b>: другая
+    сила мышц, толщина кожи и жира, чуть иное <b>смещение электродов</b> браслета, усталость.
+    Классификатор проводит границы там, где облака <b>обучающего</b> человека. У нового человека те
+    же облака <b>сдвинуты</b> — и граница, идеальная для train, промахивается по test. Двигай
+    «Сдвиг между людьми» — увидишь, как та же граница начинает резать не туда.</p>
+    <canvas id="d_dist" class="scope" width="840" height="320"></canvas>
+    <div class="legend" style="margin-bottom:12px">Круги — обучающий человек (2 жеста:
+      <span style="color:var(--c1)">A</span> / <span style="color:var(--c3)">B</span>);
+      крестики — новый человек (те же жесты, сдвинуты). Чёрная линия — граница, обученная на
+      кругах. При сдвиге крестики уходят на «чужую» сторону → ошибки.</div>
+
+    <h3>Аналогия: выучил ответы, а не предмет</h3>
+    <p style="margin-top:2px">Студент, который вызубрил <b>ответы к конкретным задачам</b>, блестяще
+    сдаёт <b>эти самые</b> задачи (случайный сплит: те же задачи в train и test). Дай ему <b>новый
+    вариант</b> (новая сессия) — уже хуже. Дай задачи <b>другого преподавателя</b> с иной
+    формулировкой (новый человек) — провал. Мы хотим студента, который <b>понял предмет</b>: только
+    кросс-субъект это проверяет.</p>
+
+    <div class="formula-ex">
+      <b>Пример разрыва (реальные числа лабы).</b><br>
+      Внутри записи: acc ≈ <span id="ex_within">—</span> — красиво, но окна протекали.<br>
+      Кросс-сессия: acc ≈ <span id="ex_cs">—</span> — та же модель, честнее тест.<br>
+      Кросс-субъект: acc ≈ <span id="ex_csub">—</span> — <b>обвал</b> на новом человеке.<br>
+      Разрыв (внутри − кросс-субъект) = <b><span id="ex_gap">—</span></b> процентных пунктов —
+      это и есть «цена» переобучения, невидимая при нечестной проверке.
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Как проверять честно (памятка, 3 правила):</b></p>
+    <ol style="margin-top:2px">
+      <li><b>Никогда</b> не мешай окна из одной записи между train и test — делить только по
+          <b>записям</b> (иначе утечка).</li>
+      <li>Хочешь оценить «другой раз у того же человека» → <b>кросс-сессия</b> (train серия 1, test
+          серия 2).</li>
+      <li>Хочешь оценить «новый пользователь протеза» → <b>кросс-субъект</b> (train одни люди, test
+          <b>другие</b>). Это и есть настоящая цель.</li>
+    </ol>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Часть А проверяется в <b>Виджете 1/2</b> (три точности), часть Б — по
+  <b>матрице ошибок кросс-субъекта</b> в Виджете 1. Записывай числа и объяснения.</p>
+
+  <h3 style="margin-top:6px">Часть А · три точности и разрыв</h3>
+  <p style="margin-top:2px">Запиши точность всех трёх схем. Посчитай <b>разрыв</b> = (внутри записи −
+  кросс-субъект) в процентных пунктах. Объясни: (а) почему «внутри записи» самая высокая (при чём
+  тут перекрытие окон и утечка); (б) почему кросс-субъект самый низкий; (в) что из трёх честнее
+  всего отражает работу протеза на <b>новом</b> человеке.</p>
+  <table>
+    <tr><th>Вариант</th><th>Что записать и объяснить</th></tr>
+    <tr><td>1</td><td>Все три acc; разрыв; почему случайный сплит завышает (утечка окон).</td></tr>
+    <tr><td>2</td><td>Все три acc; разрыв; почему кросс-сессия между «внутри» и «кросс-субъект».</td></tr>
+    <tr><td>3</td><td>Все три acc; разрыв; во сколько <b>раз</b> кросс-субъект ниже «внутри записи».</td></tr>
+    <tr><td>4</td><td>Все три acc; сравни кросс-субъект с уровнем случайного угадывания (1/K).</td></tr>
+    <tr><td>5</td><td>Все три acc; в Виджете 2 подвигай «Людей в обучении» — как меняется кросс-субъект и почему он не догоняет «внутри записи».</td></tr>
+    <tr><td>6</td><td>Все три acc; разрыв; предложи, что сделать инженеру, чтобы протез не «умер» на новом пользователе (калибровка/дообучение/больше доноров).</td></tr>
+  </table>
+
+  <h3>Часть Б · «кто выжил» по матрице кросс-субъекта</h3>
+  <p style="margin-top:2px">Переключи Виджет 1 в <b>кросс-субъект</b>. По матрице ошибок для
+  <b>заданного жеста</b> запиши: (а) какая доля его окон угадана верно (диагональ); (б) в какой
+  <b>другой</b> жест они чаще всего «утекают» (самый яркий столбец в строке); (в) почему этот жест
+  выжил/развалился. Отдельно поясни, <b>почему «покой» обычно стабильнее</b> других (там мышцы
+  расслаблены — сигнал у всех людей похож, признаки близки к нулю → меньше зависит от анатомии).</p>
+  <table>
+    <tr><th>Вариант</th><th>Жест для разбора (строка матрицы)</th></tr>
+    <tr><td>1</td><td>покой — почему обычно выживает</td></tr>
+    <tr><td>2</td><td>кулак — куда утекают окна</td></tr>
+    <tr><td>3</td><td>сгибание — путается ли с разгибанием</td></tr>
+    <tr><td>4</td><td>разгибание — куда утекает</td></tr>
+    <tr><td>5</td><td>радиальное — насколько развалилось</td></tr>
+    <tr><td>6</td><td>любой жест с самой «пустой» диагональю — назови и объясни</td></tr>
+  </table>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Точность на тех же данных, что и обучение, <b>врёт</b> — это оптимизм, а не правда.</li>
+    <li><b>Утечка данных</b>: перекрывающиеся окна из одной записи нельзя мешать между train и test
+        (тест «подсматривает» ответы). Делить нужно <b>по записям/людям</b>.</li>
+    <li><b>Кросс-сессия</b> честнее (другая запись), <b>кросс-субъект</b> честнее всего (новый
+        человек) — и именно на нём точность обваливается.</li>
+    <li><b>Переобучение</b> = разрыв между красивой и честной цифрой. Для протеза важна только
+        честная: пользователь всегда «новый человек».</li>
+    <li>«Покой» переносится лучше всего (сигнал у всех похож); сложные жесты рассыпаются из-за
+        анатомии и смещения электродов.</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик.</b> Признаки/окна — из <b>E6</b>; классификатор
+  (нормировка + LDA) — из <b>E7</b>; здесь мы научились <b>честно его проверять</b>. Дальше в
+  <b>E9</b> — оценивать не класс жеста, а <b>величину</b> усилия (регрессия силы).</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Что такое утечка данных? Почему случайный сплит окон одной записи её вызывает?</li>
+      <li>Чем кросс-сессия честнее случайного сплита, а кросс-субъект — честнее кросс-сессии?</li>
+      <li>Что такое переобучение и как его измерить по трём точностям?</li>
+      <li>Почему на новом человеке точность падает? Назови хотя бы две физические причины.</li>
+      <li>Как правильно делить данные, чтобы оценка была честной? (по чему делить?)</li>
+      <li>Почему «покой» обычно переносится на нового человека лучше сложных жестов?</li>
+      <li>Что читается по строке и по столбцу матрицы ошибок? Где на ней «верные» ответы?</li>
+      <li>Что сделать инженеру, чтобы протез не развалился на новом пользователе?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный <code>solution.py</code> берёт срезы датасета MYO из
+    <code>signals_demo/</code> (чел.01 серии 1/2 и чел.02 серия 1), обучает тот же конвейер
+    (<code>StandardScaler + LDA</code> через общий модуль <code>datasets/emg_common.py</code>) и
+    печатает три точности + матрицы ошибок, а также рисует бар-чарт трёх точностей. Запуск из папки
+    <code>dsp/</code>: <kbd>./run.sh E8</kbd> (<kbd>./run.sh E8 --save</kbd> — сохранить картинку в
+    <code>Materials/</code>). Данные виджетов уже встроены в HTML — для самой работы код не нужен.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 2 · дальше: E9 — величина сжатия (регрессия силы: не «какой жест», а «насколько сильно»)
+</p>
+
+</div>
+
+<script>
+  // встроенные данные (три схемы валидации на реальных окнах MYO); заполняет make_assets.py
+  var E8_DATA = /*DATA_START*/{"subjA":"01","subjB":"02","labels":[1,2,3,4,5,6],"gnames":{"1":"покой","2":"кулак","3":"сгибание","4":"разгибание","5":"радиальн.","6":"локтевое"},"schemes":{"within":{"acc":0.969,"cm":[[1.0,0.0,0.0,0.0,0.0,0.0],[0.0,1.0,0.0,0.0,0.0,0.0],[0.0,0.0,0.909,0.0,0.0,0.091],[0.0,0.0,0.0,1.0,0.0,0.0],[0.0,0.0,0.0,0.091,0.909,0.0],[0.0,0.0,0.0,0.0,0.0,1.0]]},"cross_session":{"acc":0.886,"cm":[[1.0,0.0,0.0,0.0,0.0,0.0],[0.0,0.812,0.0,0.0,0.125,0.062],[0.0,0.0,0.886,0.029,0.0,0.086],[0.03,0.0,0.0,0.788,0.182,0.0],[0.0,0.0,0.0,0.029,0.971,0.0],[0.0,0.0,0.121,0.03,0.0,0.848]]},"cross_subject":{"acc":0.313,"cm":[[0.857,0.0,0.029,0.029,0.086,0.0],[0.059,0.0,0.0,0.206,0.735,0.0],[0.0,0.879,0.0,0.0,0.0,0.121],[0.0,0.0,0.0,0.0,1.0,0.0],[0.0,0.0,0.0,0.0,1.0,0.0],[0.028,0.75,0.0,0.111,0.056,0.056]]}},"sweep":[{"k":1,"acc":0.313},{"k":2,"acc":0.323},{"k":3,"acc":0.418},{"k":4,"acc":0.323},{"k":5,"acc":0.607},{"k":6,"acc":0.592},{"k":7,"acc":0.607},{"k":8,"acc":0.562}],"n":{"s1":213,"s2":201,"sub2":201}}/*DATA_END*/;
+
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+  function pct(x){ return Math.round(x*100); }
+  function lcg(seed){ var s=seed>>>0||1; return function(){ s=(1103515245*s+12345)&0x7fffffff; return s/0x7fffffff; }; }
+  function randn(rnd){ var u=1e-9+rnd(), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  var SCHEMES = E8_DATA.schemes, LAB = E8_DATA.labels, GN = E8_DATA.gnames;
+  var K = LAB.length, CHANCE = 1/K;
+
+  // ---------- Виджет 1: переключатель схем + confusion matrix ----------
+  (function(){
+    var segsWrap=document.getElementById('v1_segs'),
+        accEl=document.getElementById('v1_acc'), msgEl=document.getElementById('v1_msg'),
+        outEl=document.getElementById('v1_out'), cnv=document.getElementById('v1_cm');
+    var cur='within';
+    var segs=[].slice.call(segsWrap.querySelectorAll('.seg'));
+
+    function schemeMsg(k, acc){
+      if(k==='within') return 'Внутри одной записи (случайный сплит). Красиво — но окна протекали из train в test: цифра завышена.';
+      if(k==='cross_session') return 'Кросс-сессия: тест — другая запись того же человека. Честнее; точность держится.';
+      return 'Кросс-субъект: тест — НОВЫЙ человек. Обвал — это и есть смерть протеза вживую.';
+    }
+    function readClass(acc){ return acc>=0.7 ? 'readout ok' : (acc>=0.5 ? 'readout warn' : 'readout bad'); }
+
+    // цвет ячейки: интерполяция bg→accent по значению [0..1]
+    function hexToRgb(h){ h=h.replace('#',''); if(h.length===3) h=h.replace(/(.)/g,'$1$1');
+      return [parseInt(h.substr(0,2),16),parseInt(h.substr(2,2),16),parseInt(h.substr(4,2),16)]; }
+    function mix(a,b,t){ return 'rgb('+Math.round(a[0]+(b[0]-a[0])*t)+','+Math.round(a[1]+(b[1]-a[1])*t)+','+Math.round(a[2]+(b[2]-a[2])*t)+')'; }
+
+    function drawCM(cm){
+      var ctx=cnv.getContext('2d'), W=cnv.width, H=cnv.height; ctx.clearRect(0,0,W,H);
+      var ink=css('--ink'), muted=css('--muted'), line=css('--line');
+      var c0, c1;
+      try{ c0=hexToRgb(css('--card')); }catch(e){ c0=[255,255,255]; }
+      try{ c1=hexToRgb(css('--accent')); }catch(e){ c1=[45,108,223]; }
+      // не hex? (напр. rgb) — фолбэк
+      if(!c0||isNaN(c0[0])) c0=[240,244,250];
+      if(!c1||isNaN(c1[0])) c1=[45,108,223];
+      var padL=96, padT=66, padR=16, padB=22;
+      var n=cm.length, cw=(W-padL-padR)/n, ch=(H-padT-padB)/n;
+      // заголовок «предсказано»
+      ctx.fillStyle=muted; ctx.font='13px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('предсказано →', padL+(W-padL-padR)/2, 18);
+      // подписи столбцов (сокращаем)
+      ctx.font='12px sans-serif';
+      for(var j=0;j<n;j++){
+        var nm=GN[LAB[j]]||('#'+LAB[j]);
+        ctx.fillStyle=muted; ctx.save(); ctx.translate(padL+cw*(j+0.5), padT-6); ctx.rotate(-Math.PI/6); ctx.textAlign='left';
+        ctx.fillText(nm, 0, 0); ctx.restore();
+      }
+      // подпись «истина» вертикально
+      ctx.save(); ctx.translate(16, padT+(H-padT-padB)/2); ctx.rotate(-Math.PI/2);
+      ctx.fillStyle=muted; ctx.font='13px sans-serif'; ctx.textAlign='center'; ctx.fillText('истинный жест ↓', 0, 0); ctx.restore();
+      // ячейки
+      for(var i=0;i<n;i++){
+        // подпись строки
+        ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='right';
+        ctx.fillText(GN[LAB[i]]||('#'+LAB[i]), padL-8, padT+ch*(i+0.5)+4);
+        for(var j2=0;j2<n;j2++){
+          var v=cm[i][j2], x=padL+cw*j2, y=padT+ch*i;
+          ctx.fillStyle=mix(c0,c1,Math.max(0,Math.min(1,v)));
+          ctx.fillRect(x,y,cw-1,ch-1);
+          if(v>=0.06){
+            ctx.fillStyle = v>0.5 ? '#fff' : ink;
+            ctx.font='12px sans-serif'; ctx.textAlign='center';
+            ctx.fillText(pct(v), x+cw/2, y+ch/2+4);
+          }
+        }
+      }
+      // рамка диагонали
+      ctx.strokeStyle=css('--ok'); ctx.lineWidth=2;
+      for(var d=0;d<n;d++){ ctx.strokeRect(padL+cw*d+0.5, padT+ch*d+0.5, cw-1, ch-1); }
+    }
+
+    function render(){
+      var sc=SCHEMES[cur]; if(!sc) return;
+      accEl.textContent = pct(sc.acc)+'%';
+      msgEl.textContent = schemeMsg(cur, sc.acc);
+      outEl.className = readClass(sc.acc);
+      drawCM(sc.cm);
+      segs.forEach(function(s){ s.classList.toggle('active', s.getAttribute('data-k')===cur); });
+    }
+    segs.forEach(function(s){ s.addEventListener('click', function(){ cur=s.getAttribute('data-k'); render(); }); });
+    window.__redrawScopes = render;
+    render();
+  })();
+
+  // ---------- Виджет 2: бар-чарт трёх точностей + sweep ----------
+  (function(){
+    var cnv=document.getElementById('v2_bars'), kSl=document.getElementById('v2_k'),
+        kv=document.getElementById('v2_kv'), out=document.getElementById('v2_out');
+    var order=['within','cross_session','cross_subject'];
+    var titles={within:'внутри записи', cross_session:'кросс-сессия', cross_subject:'кросс-субъект'};
+    var sweep=E8_DATA.sweep||[];
+    kSl.max = String(Math.max(1, sweep.length));
+
+    function sweepAcc(k){
+      var best=sweep[0]?sweep[0].acc:SCHEMES.cross_subject.acc;
+      for(var i=0;i<sweep.length;i++){ if(sweep[i].k<=k) best=sweep[i].acc; }
+      return best;
+    }
+
+    function draw(){
+      var kk=+kSl.value; kv.textContent=kk;
+      var ctx=cnv.getContext('2d'), W=cnv.width, H=cnv.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), ink=css('--ink'), muted=css('--muted');
+      var cols={within:css('--bad'), cross_session:css('--warn'), cross_subject:css('--ok')};
+      var baseY=H-40, maxH=H-80, x0=70, bw=120, gap=90;
+      // ось + сетка 0..100
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='right';
+      for(var g=0; g<=100; g+=25){ var yy=baseY-(g/100)*maxH; ctx.strokeStyle=line;
+        ctx.beginPath(); ctx.moveTo(x0-8,yy); ctx.lineTo(W-20,yy); ctx.stroke();
+        ctx.fillStyle=muted; ctx.fillText(g+'%', x0-12, yy+4); }
+      // столбцы
+      for(var i=0;i<order.length;i++){
+        var k=order[i];
+        var acc = (k==='cross_subject') ? sweepAcc(kk) : SCHEMES[k].acc;
+        var h=acc*maxH, x=x0+i*(bw+gap);
+        ctx.fillStyle=cols[k]; ctx.fillRect(x, baseY-h, bw, h);
+        ctx.fillStyle=ink; ctx.font='bold 20px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(pct(acc)+'%', x+bw/2, baseY-h-10);
+        ctx.fillStyle=muted; ctx.font='13px sans-serif';
+        ctx.fillText(titles[k], x+bw/2, baseY+20);
+        if(k==='cross_subject' && kk>1){ ctx.fillStyle=muted; ctx.font='11px sans-serif'; ctx.fillText('('+kk+' чел.)', x+bw/2, baseY+34); }
+      }
+      // линия случайного угадывания
+      var yc=baseY-CHANCE*maxH;
+      ctx.strokeStyle=muted; ctx.setLineDash([6,5]); ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(x0-8,yc); ctx.lineTo(W-20,yc); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('угадывание ≈ '+pct(CHANCE)+'%', x0-2, yc-6);
+
+      var csub=sweepAcc(kk), win=SCHEMES.within.acc;
+      var ratio = csub>0 ? (win/csub) : 0;
+      out.className='readout warn';
+      out.innerHTML='При <b>'+kk+'</b> чел. в обучении кросс-субъект ≈ <span class="big">'+pct(csub)+'%</span>, '+
+        'а «внутри записи» ≈ <b>'+pct(win)+'%</b> — оптимистичнее в <b>'+fmt(ratio,1)+'×</b>. '+
+        'Случайное угадывание ≈ '+pct(CHANCE)+'%.';
+    }
+    kSl.addEventListener('input', draw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+
+  // ---------- заполнить числа в примере блока «почему» ----------
+  (function(){
+    function set(id,v){ var e=document.getElementById(id); if(e) e.textContent=v; }
+    set('ex_within', pct(SCHEMES.within.acc)+'%');
+    set('ex_cs', pct(SCHEMES.cross_session.acc)+'%');
+    set('ex_csub', pct(SCHEMES.cross_subject.acc)+'%');
+    set('ex_gap', (pct(SCHEMES.within.acc)-pct(SCHEMES.cross_subject.acc)));
+  })();
+
+  // ---------- иллюстрация 1: утечка окон (перекрытие train/test) ----------
+  (function(){
+    var c=document.getElementById('d_leak'); if(!c) return;
+    function draw(){
+      var ctx=c.getContext('2d'), W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), warn=css('--warn'), muted=css('--muted'), ink=css('--ink');
+      // «поток окон» вдоль времени: прямоугольники с перекрытием, окраска train/test чередуется
+      var pad=30, y0=H/2-18, wWin=90, step=46, n=Math.floor((W-2*pad-wWin)/step)+1, i;
+      // seed-детерминированная раскладка train/test (примерно 70/30 перемешано)
+      var rnd=lcg(7);
+      ctx.fillStyle=muted; ctx.font='13px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('поток перекрывающихся окон одной записи (шаг = пол-окна):', pad, 18);
+      for(i=0;i<n;i++){
+        var x=pad+i*step;
+        var isTest = rnd()<0.3;
+        ctx.globalAlpha=0.55;
+        ctx.fillStyle = isTest ? warn : accent;
+        ctx.fillRect(x, y0 - (i%2?10:0), wWin, 30);
+        ctx.globalAlpha=1;
+      }
+      // стрелка «близнецы»
+      ctx.strokeStyle=ink; ctx.lineWidth=1.4;
+      var ax=pad+2*step+wWin/2, bx=pad+3*step+wWin/2, ay=y0+50;
+      ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,ay); ctx.stroke();
+      ctx.fillStyle=ink; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('соседи ≈ близнецы (делят половину отсчётов)', (ax+bx)/2, ay+16);
+    }
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+
+  // ---------- иллюстрация 2: сдвиг распределений + граница ----------
+  (function(){
+    var sh=document.getElementById('d_shift'); if(!sh) return;
+    var shv=document.getElementById('d_shiftv'), out=document.getElementById('d_out'), c=document.getElementById('d_dist');
+    // фиксированные облака двух классов у «обучающего» человека
+    var NP=26;
+    var trainA=[], trainB=[];
+    (function(){ var r=lcg(101), i;
+      for(i=0;i<NP;i++){ trainA.push([-0.55+0.16*randn(r), 0.10+0.16*randn(r)]); }
+      for(i=0;i<NP;i++){ trainB.push([ 0.55+0.16*randn(r), -0.10+0.16*randn(r)]); }
+    })();
+    // граница, обученная на train: перпендикуляр к линии центров, посередине.
+    // центры примерно (-0.55,0.1) и (0.55,-0.1); нормаль ~ (1.1,-0.2); середина (0,0).
+    var nx=1.1, ny=-0.2; // w·x = 0 разделяет
+    function classifyTrain(p){ return (nx*p[0]+ny*p[1])>=0 ? 'B':'A'; }
+
+    function draw(){
+      var s=+sh.value; shv.textContent=fmt(s,2);
+      var ctx=c.getContext('2d'), W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          cA=css('--c1'), cB=css('--c3');
+      var pad=30;
+      function X(u){ return pad+(u+1.4)/2.8*(W-2*pad); }
+      function Y(v){ return H-pad-(v+1.1)/2.2*(H-2*pad); }
+      // оси
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,H-pad); ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('признак 1', W/2, H-8);
+      ctx.save(); ctx.translate(14,H/2); ctx.rotate(-Math.PI/2); ctx.fillText('признак 2',0,0); ctx.restore();
+
+      // граница nx*x+ny*y=0 → y = -nx/ny * x
+      ctx.strokeStyle=ink; ctx.lineWidth=2;
+      var x1=-1.4, x2=1.4, y1=-(nx/ny)*x1, y2=-(nx/ny)*x2;
+      ctx.beginPath(); ctx.moveTo(X(x1),Y(y1)); ctx.lineTo(X(x2),Y(y2)); ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('граница (обучена на кругах)', X(-1.3), Y(-0.9));
+
+      // train (круги)
+      function dot(p,col){ ctx.fillStyle=col; ctx.globalAlpha=0.85; ctx.beginPath(); ctx.arc(X(p[0]),Y(p[1]),4,0,2*Math.PI); ctx.fill(); ctx.globalAlpha=1; }
+      trainA.forEach(function(p){ dot(p,cA); });
+      trainB.forEach(function(p){ dot(p,cB); });
+      // test (крестики) — те же облака, сдвинуты на s вправо-вверх (имитация другого человека)
+      function cross(p,col,wrong){
+        ctx.strokeStyle=col; ctx.lineWidth= wrong?2.4:1.6; ctx.globalAlpha = wrong?1:0.8;
+        var x=X(p[0]), y=Y(p[1]), r=4.5;
+        ctx.beginPath(); ctx.moveTo(x-r,y-r); ctx.lineTo(x+r,y+r); ctx.moveTo(x+r,y-r); ctx.lineTo(x-r,y+r); ctx.stroke();
+        ctx.globalAlpha=1;
+        if(wrong){ ctx.strokeStyle=css('--bad'); ctx.lineWidth=1; ctx.beginPath(); ctx.arc(x,y,8,0,2*Math.PI); ctx.stroke(); }
+      }
+      var dx=s*0.9, dy=s*0.55, wrongN=0, total=0;
+      trainA.forEach(function(p){ var q=[p[0]+dx,p[1]+dy]; var w=classifyTrain(q)!=='A'; if(w)wrongN++; total++; cross(q,cA,w); });
+      trainB.forEach(function(p){ var q=[p[0]+dx,p[1]+dy]; var w=classifyTrain(q)!=='B'; if(w)wrongN++; total++; cross(q,cB,w); });
+
+      var acc=1-wrongN/total;
+      out.className = acc>=0.75 ? 'readout ok' : (acc>=0.55?'readout warn':'readout bad');
+      out.innerHTML = s<0.01
+        ? 'Сдвиг = 0 (тот же человек): крестики лежат на кругах, граница режет верно. Точность на «тесте» ≈ <b>'+pct(acc)+'%</b>.'
+        : 'Сдвиг = '+fmt(s,2)+': крестики (новый человек) уехали, часть попала на чужую сторону границы. Точность ≈ <span class="big">'+pct(acc)+'%</span> ('+wrongN+' из '+total+' — ошибки, обведены).';
+    }
+    sh.addEventListener('input', draw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+</script>
+
+</body>
+</html>

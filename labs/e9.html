@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E9 — Величина сжатия: регрессия (пропорциональное управление)</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+    --c1:#2d6cdf; --c2:#d9822b; --c3:#0f9d58; --c4:#a24bd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+    --c1:#6ea0ff; --c2:#e0a45f; --c3:#4cc98a; --c4:#c07ff0;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl select{flex:1; padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px;}
+  .ctrl .val{flex:0 0 70px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E9</span>
+  <h1>Величина сжатия — регрессия (пропорциональное управление)</h1>
+  <p>Серия «синус → протез» · часть 2 · одна тема: не «какой жест», а «насколько сильно» — непрерывный уровень силы 0–100 %</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема.</b> Раньше (E7) мы спрашивали у сигнала «<b>ЧТО</b> за жест?» — это
+    <span class="term" data-tip="Классификация: сигнал → один из нескольких классов (покой / кулак / жест N). Ответ дискретный.">классификация</span>,
+    ответ дискретный: кулак / покой. Теперь другой вопрос: «<b>НАСКОЛЬКО</b> сильно человек
+    сжимает?» — непрерывное число от 0 до 100 %. Это
+    <span class="term" data-tip="Регрессия: сигнал → непрерывная величина (число), а не класс. Здесь — уровень силы 0..100%.">регрессия</span>,
+    и это <b>второй способ</b> управлять протезом: не «щёлк — закрылось», а <b>плавно</b> —
+    чем сильнее напряг мышцу, тем сильнее сжалась клешня.
+  </p>
+  <p style="margin-bottom:0">
+    Цель работы — <b>не запустить код</b>, а понять три вещи: почему <b>амплитуда</b>
+    сигнала (RMS/MAV) годится как мера силы; что делает
+    <span class="term" data-tip="Линейная регрессия: подбирает веса при признаках так, чтобы предсказанное число было как можно ближе к истинному (минимум суммы квадратов ошибок).">линейная регрессия</span>
+    (подбирает веса признаки→число); и зачем выход приходится
+    <span class="term" data-tip="Сглаживание: скользящее среднее по выходу декодера. Убирает дрожь, но добавляет задержку.">сглаживать</span>
+    — и какова цена сглаживания (задержка).
+  </p>
+  <div class="warn" style="margin-bottom:0"><b>Честно про данные.</b> Датасет UCI-Lobov (браслет
+    MYO) <b>не содержит измеренной силы</b> — там нет тензодатчика. Поэтому целью мы берём
+    <b>учебный прокси силы</b>: нормированную
+    <span class="term" data-tip="RMS-огибающая: медленная кривая эффективной амплитуды сигнала (из E4). Растёт с силой сокращения.">RMS-огибающую</span>
+    сигнала (0–100 %). На датасетах с <b>настоящей</b> силой (putEMG-Force, Hyser) пайплайн
+    <b>тот же</b> — меняется только откуда берётся цель: реальный датчик силы вместо RMS-прокси.</div>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0"><b>Регрессия = предсказать число.</b> Как и в E7, из окна сигнала берём
+  вектор признаков $\mathbf{x}$ (те же MAV/RMS/WL/… из <b>E6</b>). Но на выходе теперь не класс,
+  а <b>число</b> — уровень силы $\hat{y}\in[0,100]$. Линейная модель — просто взвешенная сумма:</p>
+  \[ \hat{y} \;=\; w_0 + w_1 x_1 + w_2 x_2 + \dots + w_D x_D. \]
+  <p style="margin:2px 0">Веса $w_i$ подбираются на обучающих данных так, чтобы предсказания были
+  ближе всего к истинным уровням — по методу
+  <span class="term" data-tip="МНК (метод наименьших квадратов): подбор весов, минимизирующий сумму квадратов ошибок между предсказанием и истиной.">наименьших квадратов</span>.</p>
+  <p style="margin:2px 0"><b>Цель (уровень).</b> Раз настоящей силы нет — берём RMS-огибающую
+  (из <b>E4</b>), усреднённую по каналам, и нормируем в 0–100 %. Это наш «сколько силы».</p>
+  <p style="margin-bottom:0"><b>Качество —</b>
+  <span class="term" data-tip="R² (коэффициент детерминации): доля дисперсии цели, объяснённая моделью. 1 = идеально, 0 = не лучше, чем всегда предсказывать среднее, <0 = хуже среднего.">$R^2$</span>
+  (доля объяснённой дисперсии; 1 = идеально, 0 = «не лучше среднего») и <b>средняя ошибка</b>
+  в процентах силы. Их и считает регрессия ниже на реальном срезе UCI.</p>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 · синтетика: сила → уровень ============ -->
+<div class="lab">
+  <h3>Виджет 1 · Сила сокращения → предсказанный уровень</h3>
+  <p style="margin-top:2px">Слева — синтетический ЭМГ заданной <b>силы</b> (плюс шум). Справа —
+  <b>индикатор</b> уровня, который выдаёт декодер: он меряет амплитуду окна и переводит её в
+  проценты. Двигай «Силу» — полоска едет за ней. Добавь <b>шум</b> — сырой уровень задрожит.
+  Включи <b>сглаживание</b> — дрожь уходит, но полоска начинает <b>отставать</b> (это и есть цена
+  плавности: задержка).</p>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;align-items:start">
+    <canvas id="w1_sig" class="scope" width="560" height="240" style="margin:0"></canvas>
+    <canvas id="w1_bar" class="scope" width="220" height="240" style="margin:0"></canvas>
+  </div>
+  <div class="controls" style="margin-top:12px">
+    <div class="ctrl"><label><span class="term" data-tip="Истинная сила сокращения (0..100%). В реальном протезе — это то, что хочет человек.">Сила $y$</span></label><input type="range" id="w1_force" min="0" max="100" step="1" value="60"><span class="val" id="w1_forcev">60 %</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Уровень шума в сигнале: помехи, наводки, дрожь электрода. Чем больше — тем сильнее дрожит сырой выход.">Шум $\sigma$</span></label><input type="range" id="w1_noise" min="0" max="60" step="1" value="15"><span class="val" id="w1_noisev">15 %</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Сглаживание: длина окна скользящего среднего по выходу декодера. 0 = сырой выход, больше = глаже, но с задержкой.">Сглаживание</span></label><input type="range" id="w1_smooth" min="0" max="40" step="1" value="8"><span class="val" id="w1_smoothv">8</span></div>
+    <div class="ctrl"><label>&nbsp;</label><span class="muted" id="w1_hint">двигай «Силу» — полоска едет за ней</span></div>
+  </div>
+  <div class="readout ok" id="w1_out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Поставь <b>шум = 0</b>. Меняй «Силу» — убедись, что предсказанный уровень почти
+          повторяет истинную силу (амплитуда → уровень).</li>
+      <li>Подними <b>шум</b>. Смотри на «сырой» уровень (тонкая линия) — он задрожал. На сколько
+          процентов скачет предсказание при неподвижной силе?</li>
+      <li>Теперь крути <b>сглаживание</b>. Дрожь падает — но <b>резко дёрни</b> «Силу» и заметь,
+          что полоска доезжает не сразу. Это <b>задержка</b> — цена плавности.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 · реальные данные: true vs pred ============ -->
+<div class="lab">
+  <h3>Виджет 2 · Реальные данные: истинный уровень vs предсказанный (R²)</h3>
+  <p style="margin-top:2px">Каждая точка — одно окно реального сигнала UCI из <b>тестовой</b> части.
+  По горизонтали — <b>истинный</b> уровень (RMS-прокси силы), по вертикали — что
+  <b>предсказала</b> регрессия. Идеал — все точки на диагонали $y=x$ (пунктир): предсказал ровно
+  столько, сколько есть. Чем ближе облако к диагонали — тем выше $R^2$.</p>
+  <canvas id="sc_plot" class="scope" width="840" height="420"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--accent)"></span>окно (тест)</span>
+    <span><span class="sw" style="background:var(--muted)"></span>идеал $y=x$</span>
+    <span><span class="sw" style="background:var(--ok)"></span>линия регрессии по точкам</span>
+  </div>
+  <div class="readout ok" id="sc_out"></div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Посмотри, <b>насколько плотно</b> точки лежат вдоль диагонали. Запиши $R^2$ и среднюю
+          ошибку из подписи — это качество пропорционального декодера.</li>
+      <li>Найди, <b>где</b> точки сильнее всего уходят от диагонали — у <b>низких</b> уровней
+          (0–20 %) или у <b>высоких</b> (80–100 %)? Почему у краёв тяжелее? (подсказка: у 0 и 100
+          уровень «упирается» в стенку — предсказать точнее нечем.)</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему это работает: амплитуда ≈ сила, что делает регрессия, что такое R²<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Пропорциональное управление — не чёрный ящик. За ним три простых мысли:
+    (1) <b>амплитуда</b> сигнала растёт с силой мышцы; (2) <b>регрессия</b> подбирает веса, чтобы
+    из амплитуды (и других признаков) собрать число поближе к истине; (3) сырой выход <b>дрожит</b>,
+    поэтому его сглаживают — за цену задержки. Двигай ползунок наклона ниже — увидишь, как МНК
+    ищет лучшую прямую.</p>
+
+    <h3 style="margin-top:10px">1. Почему амплитуда (MAV/RMS) ≈ сила мышцы</h3>
+    <p style="margin-top:2px">Когда мышца сокращается сильнее, мозг включает <b>больше</b> двигательных
+    единиц и заставляет их разряжаться <b>чаще</b>. Под электродом это складывается в сигнал с
+    <b>большим размахом</b>. Значит «насколько сильно» надёжнее всего читается по <b>размаху</b>
+    колебаний — а размах одним числом как раз и ловят MAV (средний модуль) и RMS (эффективная
+    амплитуда) из <b>E6</b>. Медленную версию RMS во времени — <b>RMS-огибающую</b> — мы и берём
+    как цель «уровень силы» (она из <b>E4</b>).</p>
+
+    <h3>2. Что делает линейная регрессия — коротко (МНК)</h3>
+    <p style="margin-top:2px">Возьмём для наглядности <b>один</b> признак — амплитуду $x$ — и уровень
+    $y$. Регрессия ищет прямую $\hat y = a\,x + b$, которая проходит <b>сквозь облако точек</b> как
+    можно ближе. «Ближе» = сумма <b>квадратов</b> вертикальных отрезков (ошибок) минимальна.
+    Крути наклон $a$ ползунком — красные отрезки это ошибки, а сумма их квадратов (SSE) внизу
+    показывает, насколько прямая плоха. Есть <b>одно</b> положение, где SSE минимальна — его и
+    находит МНК.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Наклон подгоняемой прямой a в ŷ = a·x + b. Крути и следи за суммой квадратов ошибок.">Наклон $a$</span></label><input type="range" id="ls_a" min="0" max="140" step="1" value="55"><span class="val" id="ls_av">55</span></div>
+        <div class="ctrl"><label>&nbsp;</label><button id="ls_best" class="theme-btn" style="position:static;box-shadow:none">▷ показать минимум (МНК)</button></div>
+      </div>
+      <canvas id="ls_plot" class="scope" width="840" height="320"></canvas>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--accent)"></span>точки (признак, уровень)</span>
+        <span><span class="sw" style="background:var(--ok)"></span>подгоняемая прямая</span>
+        <span><span class="sw" style="background:var(--warn)"></span>ошибки (остатки)</span>
+      </div>
+      <div class="readout ok" id="ls_out"></div>
+    </div>
+    <p style="margin:6px 0">Формула ошибки, которую МНК минимизирует (по всем обучающим окнам):</p>
+    \[ \mathrm{SSE}(w)=\sum_{k}\bigl(y_k-\hat y_k\bigr)^2\;\longrightarrow\;\min_w,\qquad
+       \hat y_k=w_0+\textstyle\sum_i w_i\,x_{k,i}. \]
+    <p style="margin:2px 0">С многими признаками прямая превращается в
+    <span class="term" data-tip="Гиперплоскость: обобщение прямой/плоскости на много измерений. С D признаками модель — плоскость в (D+1)-мерном пространстве.">плоскость</span>
+    в многомерном пространстве, но идея та же: минимум суммы квадратов. Именно это делает
+    <code>LinearRegression</code>/<code>Ridge</code> в scikit-learn за нас.</p>
+
+    <h3>3. Что такое R² (и почему 1 — идеал, 0 — «не лучше среднего»)</h3>
+    <p style="margin-top:2px">Насколько модель хороша? Сравним её с самым тупым «предсказателем»,
+    который всегда выдаёт <b>среднее</b> $\bar y$. $R^2$ показывает, какую <b>долю разброса</b>
+    (дисперсии) цели модель объяснила <b>сверх</b> этого тупого базового уровня:</p>
+    \[ R^2 = 1-\frac{\sum_k (y_k-\hat y_k)^2}{\sum_k (y_k-\bar y)^2}
+           = 1-\frac{\text{ошибка модели}}{\text{ошибка «всегда среднее»}}. \]
+    <p style="margin:2px 0"><b>Читается так:</b> $R^2=1$ — ошибка нулевая, идеал. $R^2=0$ — модель не
+    лучше, чем всегда предсказывать среднее. $R^2<0$ — умудрилась быть <b>хуже</b> среднего.
+    Двигай наклон в виджете выше — под ним меняется и $R^2$ этой прямой: у минимума SSE он
+    максимален.</p>
+
+    <h3>4. Зачем сглаживать выход — и его цена (задержка)</h3>
+    <p style="margin-top:2px">Сырой уровень скачет от окна к окну: шум, случайные всплески,
+    смена активных единиц. Клешня, дёргающаяся на ±10 % при неподвижной руке, бесит. Лечим
+    <b>скользящим средним</b> по выходу: усредняем последние $M$ значений. Чем больше $M$ — тем
+    <b>глаже</b>, но тем <b>позже</b> выход реагирует на реальное изменение силы (запаздывает на
+    ~$M/2$ окон). Это классический компромисс: <b>плавно ↔ быстро</b>. В Виджете 1 это ползунок
+    «Сглаживание» — подвигай его и сравни.</p>
+    <canvas id="sm_plot" class="scope" width="840" height="200"></canvas>
+    <div class="legend" style="margin-bottom:12px">
+      <span><span class="sw" style="background:var(--warn)"></span>сырой выход (дрожит)</span>
+      <span><span class="sw" style="background:var(--ok)"></span>сглаженный (глаже, но с задержкой)</span>
+      <span><span class="sw" style="background:var(--muted)"></span>истинная сила (ступенька)</span>
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Итого, конвейер пропорционального управления (4 шага):</b></p>
+    <ol style="margin-top:2px">
+      <li>из окна сигнала берём вектор признаков $\mathbf{x}$ (как в E6);</li>
+      <li>регрессия переводит $\mathbf{x}$ в число $\hat y$ — уровень силы 0–100 %;</li>
+      <li>сглаживаем $\hat y$ скользящим средним (убираем дрожь ценой задержки);</li>
+      <li>уровень едет на индикатор/клешню — плавное управление.</li>
+    </ol>
+
+    <div class="formula-ex">
+      <b>Пример R².</b> Пусть истинные уровни $y=[20,40,60,80]$, среднее $\bar y=50$.<br>
+      Разброс цели: $\sum (y-\bar y)^2 = 30^2{+}10^2{+}10^2{+}30^2 = 2000$.<br>
+      Модель предсказала $\hat y=[25,38,63,78]$ → ошибка $\sum (y-\hat y)^2 = 5^2{+}2^2{+}3^2{+}2^2 = 42$.<br>
+      $R^2 = 1-42/2000 = \mathbf{0{,}979}$ — почти идеал.
+    </div>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Часть А проверяется в <b>Виджете 1</b> (синтетика: сила → уровень,
+  сглаживание), часть Б — в <b>Виджете 2</b> (реальный scatter true/pred и $R^2$). Записывай
+  числа и наблюдения.</p>
+
+  <h3 style="margin-top:6px">Часть А · сила, шум и задержка сглаживания</h3>
+  <p style="margin-top:2px">Выстави заданную «Силу» и «Шум». <b>Запиши</b> предсказанный уровень
+  при сглаживании = 0. Затем поставь заданное <b>сглаживание</b>, резко переведи «Силу» до 100 %
+  и на глаз оцени, <b>на сколько окон</b> запаздывает полоска. Опиши компромисс «плавно ↔ задержка».</p>
+  <table>
+    <tr><th>Вариант</th><th>Сила $y$</th><th>Шум $\sigma$</th><th>Сглаживание $M$</th></tr>
+    <tr><td>1</td><td>60 %</td><td>10 %</td><td>4</td></tr>
+    <tr><td>2</td><td>30 %</td><td>25 %</td><td>10</td></tr>
+    <tr><td>3</td><td>85 %</td><td>15 %</td><td>6</td></tr>
+    <tr><td>4</td><td>45 %</td><td>40 %</td><td>20</td></tr>
+    <tr><td>5</td><td>75 %</td><td>30 %</td><td>14</td></tr>
+    <tr><td>6</td><td>20 %</td><td>50 %</td><td>30</td></tr>
+  </table>
+
+  <h3>Часть Б · качество регрессии на реальных данных</h3>
+  <p style="margin-top:2px">В Виджете 2 по scatter'у true/pred <b>запиши:</b> (а) $R^2$ и среднюю
+  ошибку в процентах силы; (б) в какой зоне уровней (низкие 0–20 %, средние, высокие 80–100 %)
+  точки сильнее уходят от диагонали $y=x$ и <b>почему</b> регрессия там ошибается; (в) как бы ты
+  оценил — годится ли такой декодер для плавного управления клешнёй (обоснуй по $R^2$/ошибке).</p>
+  <table>
+    <tr><th>Вариант</th><th>На что смотреть в scatter'е</th></tr>
+    <tr><td>1</td><td>зона <b>низких</b> уровней (0–20 %): куда смещены предсказания?</td></tr>
+    <tr><td>2</td><td>зона <b>высоких</b> уровней (80–100 %): недооценка или переоценка?</td></tr>
+    <tr><td>3</td><td>зона <b>середины</b> (40–60 %): самая плотная ли она к диагонали?</td></tr>
+    <tr><td>4</td><td>самая <b>дальняя</b> от диагонали точка: какой у неё истинный уровень?</td></tr>
+    <tr><td>5</td><td>общий <b>разброс</b> вокруг $y=x$: соответствует ли он заявленному $R^2$?</td></tr>
+    <tr><td>6</td><td>сравни разброс у <b>краёв</b> и в <b>середине</b>: где теснее к диагонали?</td></tr>
+  </table>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Классификация отвечает «<b>ЧТО</b> за жест» (дискретно), регрессия — «<b>НАСКОЛЬКО</b>
+        сильно» (непрерывно, 0–100 %). Регрессия даёт <b>плавное</b> управление.</li>
+    <li><b>Амплитуда</b> сигнала (MAV/RMS) растёт с силой мышцы — потому по ней и предсказывают уровень.</li>
+    <li><b>Линейная регрессия</b> подбирает веса (МНК: минимум суммы квадратов ошибок);
+        качество меряют <b>$R^2$</b> (1 = идеал, 0 = «не лучше среднего») и средней ошибкой.</li>
+    <li>Сырой выход <b>дрожит</b> — его сглаживают скользящим средним; цена — <b>задержка</b>
+        (компромисс «плавно ↔ быстро»).</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик.</b> RMS-огибающая (цель-уровень) — из <b>E4</b>;
+  вектор признаков MAV/RMS/… — из <b>E6</b>; здесь мы из них собрали <b>непрерывный</b> декодер силы.
+  Дальше (<b>E10</b>) запустим декодер как <b>живой поток</b> — с каузальным окном и бюджетом задержки.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Чем регрессия отличается от классификации? Приведи пример вопроса для каждой.</li>
+      <li>Почему амплитуда (MAV/RMS) годится как мера силы сокращения?</li>
+      <li>Что минимизирует линейная регрессия (МНК)? Почему берут <b>квадрат</b> ошибки, а не модуль?</li>
+      <li>Что такое $R^2$? Что означают значения 1, 0 и отрицательное?</li>
+      <li>Зачем сглаживать выход декодера и какова цена сглаживания?</li>
+      <li>Почему у нас цель — RMS-прокси, а не настоящая сила? Что изменится на putEMG-Force/Hyser?</li>
+      <li>В каких зонах уровней регрессия ошибается сильнее и почему?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный <code>solution.py</code> берёт срез датасета UCI из
+    <code>signals_demo/</code>, режет на окна, строит цель = нормированную RMS-огибающую (прокси
+    силы), обучает регрессию признаки→уровень (через общий модуль
+    <code>datasets/emg_common.py</code>), печатает <b>$R^2$</b> и среднюю ошибку и рисует scatter
+    истинного/предсказанного уровня. Запуск из папки <code>dsp/</code>: <kbd>./run.sh E9</kbd>
+    (<kbd>./run.sh E9 --save</kbd> — сохранить картинку). Данные в scatter выше уже встроены —
+    для самой работы код не нужен.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 2 · дальше: E10 — онлайн-декодер: датасет как живой поток (каузальное окно, задержка, стабилизация)
+</p>
+
+</div>
+
+<script>
+  // встроенные данные (реальный тест-срез UCI: истинный/предсказанный уровень + R²); заполняет make_assets.py
+  var E9_DATA = /*DATA_START*/{"subject":"01","target":"RMS-прокси силы (0..100%)","r2":0.989,"mae":2.16,"n_train":289,"n_test":125,"points":[{"t":0.0,"p":-0.0},{"t":0.3,"p":-0.2},{"t":0.7,"p":2.0},{"t":0.8,"p":0.2},{"t":0.9,"p":1.6},{"t":0.9,"p":4.5},{"t":1.0,"p":2.4},{"t":1.0,"p":2.0},{"t":1.0,"p":4.0},{"t":1.5,"p":3.4},{"t":2.4,"p":3.3},{"t":2.5,"p":4.5},{"t":2.7,"p":5.3},{"t":2.8,"p":4.6},{"t":3.3,"p":4.3},{"t":3.4,"p":3.5},{"t":3.6,"p":3.0},{"t":4.6,"p":4.0},{"t":33.7,"p":31.6},{"t":34.4,"p":35.6},{"t":34.6,"p":36.3},{"t":34.6,"p":38.0},{"t":35.6,"p":32.6},{"t":35.8,"p":31.1},{"t":37.0,"p":39.8},{"t":37.3,"p":35.7},{"t":37.7,"p":35.0},{"t":37.8,"p":33.3},{"t":39.3,"p":36.4},{"t":39.7,"p":42.6},{"t":39.8,"p":41.0},{"t":40.6,"p":42.4},{"t":41.4,"p":38.2},{"t":41.6,"p":39.5},{"t":41.7,"p":43.6},{"t":41.7,"p":41.8},{"t":42.9,"p":39.1},{"t":44.1,"p":41.1},{"t":44.3,"p":44.0},{"t":44.5,"p":46.7},{"t":44.9,"p":39.5},{"t":45.0,"p":45.3},{"t":45.2,"p":44.5},{"t":45.3,"p":42.4},{"t":45.4,"p":44.9},{"t":45.4,"p":42.8},{"t":45.8,"p":47.4},{"t":45.9,"p":45.7},{"t":47.2,"p":45.5},{"t":47.5,"p":45.5},{"t":47.8,"p":49.1},{"t":47.8,"p":42.1},{"t":48.0,"p":46.7},{"t":48.3,"p":49.6},{"t":49.4,"p":49.9},{"t":50.1,"p":52.3},{"t":50.2,"p":52.9},{"t":51.9,"p":49.2},{"t":52.2,"p":50.3},{"t":53.7,"p":58.0},{"t":55.0,"p":52.5},{"t":55.6,"p":57.3},{"t":56.5,"p":55.1},{"t":56.5,"p":59.0},{"t":56.8,"p":52.4},{"t":57.1,"p":55.4},{"t":57.3,"p":58.0},{"t":57.8,"p":57.9},{"t":57.9,"p":60.8},{"t":58.1,"p":57.7},{"t":58.5,"p":56.9},{"t":58.8,"p":61.3},{"t":61.0,"p":58.0},{"t":61.7,"p":67.2},{"t":61.8,"p":58.2},{"t":62.7,"p":61.8},{"t":62.9,"p":69.2},{"t":63.6,"p":64.6},{"t":64.7,"p":60.0},{"t":64.9,"p":64.9},{"t":66.0,"p":65.7},{"t":66.5,"p":62.5},{"t":66.5,"p":64.8},{"t":67.0,"p":68.8},{"t":69.8,"p":70.8},{"t":69.8,"p":71.5},{"t":70.5,"p":70.4},{"t":70.9,"p":71.5},{"t":71.0,"p":72.1},{"t":71.7,"p":72.0},{"t":71.9,"p":71.1},{"t":72.0,"p":71.8},{"t":75.2,"p":71.8},{"t":77.4,"p":75.3},{"t":77.7,"p":73.1},{"t":78.7,"p":81.1},{"t":78.7,"p":76.5},{"t":79.4,"p":80.9},{"t":79.7,"p":78.0},{"t":80.1,"p":84.6},{"t":81.3,"p":78.7},{"t":81.3,"p":81.6},{"t":82.3,"p":82.1},{"t":84.2,"p":82.6},{"t":84.2,"p":79.4},{"t":85.7,"p":80.2},{"t":88.4,"p":87.9},{"t":88.8,"p":90.0},{"t":92.5,"p":94.3},{"t":93.0,"p":90.0},{"t":93.3,"p":87.9},{"t":93.4,"p":94.0},{"t":94.1,"p":94.1},{"t":94.5,"p":99.7},{"t":95.1,"p":96.8},{"t":96.7,"p":100.0},{"t":99.1,"p":91.8},{"t":100.0,"p":103.9},{"t":100.0,"p":115.7},{"t":100.0,"p":99.7}]}/*DATA_END*/;
+
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+  function lcg(seed){ var s=seed>>>0||1; return function(){ s=(1103515245*s+12345)&0x7fffffff; return s/0x7fffffff; }; }
+  function randn(rnd){ var u=1e-9+rnd(), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+
+  // ---------- виджет 1: сила → уровень, шум, сглаживание ----------
+  (function(){
+    var force=document.getElementById('w1_force'), noise=document.getElementById('w1_noise'),
+        smooth=document.getElementById('w1_smooth'),
+        fv=document.getElementById('w1_forcev'), nv=document.getElementById('w1_noisev'),
+        sv=document.getElementById('w1_smoothv'),
+        cSig=document.getElementById('w1_sig'), cBar=document.getElementById('w1_bar'),
+        out=document.getElementById('w1_out'), hint=document.getElementById('w1_hint');
+
+    // история сырого выхода для скользящего среднего (демонстрация задержки)
+    var hist=[];
+    var HMAX=60;
+
+    // синтетический ЭМГ окна: полосовой шум под огибающей, амплитуда ∝ сила
+    function synthWin(forcePct, noisePct, seed){
+      var N=320, x=new Float64Array(N), n,i, rnd=lcg(seed||7);
+      var amp=forcePct/100;                      // размах ∝ сила
+      var K=36, tones=[]; for(i=0;i<K;i++) tones.push({f:0.02+0.18*i/(K-1), ph:rnd()*6.28, m:0.5+rnd()});
+      var mx=1e-9;
+      for(n=0;n<N;n++){ var s=0; for(i=0;i<K;i++) s+=tones[i].m*Math.sin(6.283*tones[i].f*n+tones[i].ph); x[n]=s; if(Math.abs(s)>mx) mx=Math.abs(s); }
+      for(n=0;n<N;n++){ x[n]=amp*x[n]/mx + (noisePct/100)*0.5*randn(rnd); }
+      return x;
+    }
+    function rmsPct(x){ var s=0,n; for(n=0;n<x.length;n++) s+=x[n]*x[n]; var r=Math.sqrt(s/x.length);
+      // грубая нормировка RMS полосового шума под огибающей в проценты (эмпирич. коэфф)
+      return Math.max(0, Math.min(100, r*100/0.41)); }
+
+    function drawSig(x){
+      var ctx=cSig.getContext('2d'), W=cSig.width, H=cSig.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'); var pad=22, y0=H/2, n,xp,yp;
+      ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+      ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.beginPath();
+      for(n=0;n<x.length;n++){ xp=pad+(n/(x.length-1))*(W-2*pad); yp=y0-x[n]*(H/2-14); n?ctx.lineTo(xp,yp):ctx.moveTo(xp,yp); }
+      ctx.stroke();
+      ctx.fillStyle=css('--muted'); ctx.font='12px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('синтетический ЭМГ (размах ∝ сила)', pad, 16);
+    }
+    function drawBar(rawPct, smPct){
+      var ctx=cBar.getContext('2d'), W=cBar.width, H=cBar.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), ok=css('--ok'), warn=css('--warn'), ink=css('--ink'), muted=css('--muted');
+      var pad=26, bx=W/2-30, bw=60, top=pad, bot=H-pad, hgt=bot-top;
+      // рамка
+      ctx.strokeStyle=line; ctx.strokeRect(bx, top, bw, hgt);
+      // заливка по сглаженному уровню
+      var hh=hgt*smPct/100;
+      ctx.fillStyle=ok; ctx.globalAlpha=.85; ctx.fillRect(bx, bot-hh, bw, hh); ctx.globalAlpha=1;
+      // риска сырого уровня
+      var yr=bot-hgt*rawPct/100;
+      ctx.strokeStyle=warn; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx-8,yr); ctx.lineTo(bx+bw+8,yr); ctx.stroke();
+      // число
+      ctx.fillStyle=ink; ctx.font='bold 26px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(Math.round(smPct)+' %', bx+bw/2, top-8);
+      ctx.fillStyle=muted; ctx.font='12px sans-serif';
+      ctx.fillText('уровень', bx+bw/2, bot+16);
+      ctx.textAlign='left'; ctx.fillStyle=warn; ctx.font='11px sans-serif';
+      ctx.fillText('— сырой', bx+bw+10, yr+4);
+    }
+    function upd(){
+      var y=+force.value, sg=+noise.value, M=+smooth.value;
+      fv.textContent=y+' %'; nv.textContent=sg+' %'; sv.textContent=M;
+      var x=synthWin(y, sg, 7 + (sg*3|0));   // seed зависит от шума → дрожь видно при перерисовке
+      var raw=rmsPct(x);
+      hist.push(raw); if(hist.length>HMAX) hist.shift();
+      // скользящее среднее по последним M значений
+      var m=Math.max(1, M), k=Math.min(m, hist.length), s=0;
+      for(var i=hist.length-k;i<hist.length;i++) s+=hist[i];
+      var sm=s/k;
+      drawSig(x); drawBar(raw, sm);
+      var jitter = Math.abs(raw - y);
+      out.className='readout ok';
+      out.innerHTML='Истинная сила <b>'+y+' %</b> → сырой уровень <b>'+fmt(raw,0)+' %</b>'+
+        ' (отклонение из-за шума '+fmt(jitter,0)+' %), сглаженный (M='+M+') → <b class="big">'+fmt(sm,0)+' %</b>. '+
+        (M>=14 ? 'Сильное сглаживание: плавно, но с заметной <b>задержкой</b>.' :
+         (sg>=30 ? 'Много шума — сырой выход <b>дрожит</b>, подними сглаживание.' :
+          'Амплитуда → уровень; полоска едет за силой.'));
+      hint.textContent = M>=14 ? 'дёрни силу — полоска доедет не сразу (задержка)' : 'двигай «Силу» — полоска едет за ней';
+    }
+    [force,noise,smooth].forEach(function(e){ e.addEventListener('input',upd); });
+    window.__redrawScopes = upd; upd();
+  })();
+
+  // ---------- виджет 2: scatter истинный vs предсказанный (реальные данные) ----------
+  (function(){
+    var plot=document.getElementById('sc_plot'), out=document.getElementById('sc_out');
+    var pts=E9_DATA.points||[];
+    function draw(){
+      var ctx=plot.getContext('2d'), W=plot.width, H=plot.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), accent=css('--accent'), ok=css('--ok');
+      var pad=44;
+      function X(u){ return pad+u/100*(W-2*pad); }       // u в 0..100
+      function Y(v){ return H-pad-v/100*(H-2*pad); }
+      // сетка + оси
+      ctx.strokeStyle=line; ctx.lineWidth=1; ctx.fillStyle=muted; ctx.font='12px sans-serif';
+      ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+      for(var g=0; g<=100; g+=20){
+        ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(X(g),Y(0)); ctx.lineTo(X(g),Y(100)); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(X(0),Y(g)); ctx.lineTo(X(100),Y(g)); ctx.stroke();
+        ctx.fillText(g, X(g), H-pad+16);
+        ctx.textAlign='right'; ctx.fillText(g, pad-8, Y(g)+4); ctx.textAlign='center';
+      }
+      // рамка
+      ctx.strokeStyle=muted; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(100),Y(0)); ctx.lineTo(X(100),Y(100)); ctx.lineTo(X(0),Y(100)); ctx.closePath(); ctx.stroke();
+      // диагональ y=x (идеал)
+      ctx.strokeStyle=muted; ctx.setLineDash([6,5]); ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(100),Y(100)); ctx.stroke(); ctx.setLineDash([]);
+      // линия регрессии по показанным точкам (для наглядности)
+      if(pts.length>=2){
+        var sx=0,sy=0,sxx=0,sxy=0,n=pts.length;
+        pts.forEach(function(p){ sx+=p.t; sy+=p.p; sxx+=p.t*p.t; sxy+=p.t*p.p; });
+        var den=n*sxx-sx*sx;
+        if(Math.abs(den)>1e-9){
+          var a=(n*sxy-sx*sy)/den, b=(sy-a*sx)/n;
+          ctx.strokeStyle=ok; ctx.lineWidth=2;
+          ctx.beginPath(); ctx.moveTo(X(0),Y(b)); ctx.lineTo(X(100),Y(a*100+b)); ctx.stroke();
+        }
+      }
+      // точки
+      ctx.fillStyle=accent; ctx.globalAlpha=.78;
+      pts.forEach(function(p){ ctx.beginPath(); ctx.arc(X(p.t),Y(p.p),4,0,6.283); ctx.fill(); });
+      ctx.globalAlpha=1;
+      // подписи осей
+      ctx.fillStyle=muted; ctx.font='13px sans-serif';
+      ctx.fillText('истинный уровень, %', W/2, H-6);
+      ctx.save(); ctx.translate(14,H/2); ctx.rotate(-Math.PI/2); ctx.fillText('предсказанный уровень, %',0,0); ctx.restore();
+
+      var r2=E9_DATA.r2, mae=E9_DATA.mae;
+      out.className = (r2>=0.7) ? 'readout ok' : 'readout bad';
+      out.innerHTML = 'Регрессия признаки → уровень на срезе UCI (испытуемый '+E9_DATA.subject+', '+
+        'train='+E9_DATA.n_train+' / test='+E9_DATA.n_test+' окон). '+
+        '<b>R² = <span class="big">'+fmt(r2,2)+'</span></b>, средняя ошибка ≈ <b>'+fmt(mae,1)+' %</b> силы. '+
+        (r2>=0.9 ? 'Точки плотно у диагонали — декодер годится для плавного управления.'
+                 : (r2>=0.7 ? 'Прилично, но у краёв есть промахи.' : 'Слабо: облако широкое.'));
+    }
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+
+  // ---------- иллюстрация МНК в блоке «почему» (подгоняемая прямая + SSE) ----------
+  (function(){
+    var sl=document.getElementById('ls_a'); if(!sl) return;
+    var av=document.getElementById('ls_av'), out=document.getElementById('ls_out'),
+        plot=document.getElementById('ls_plot'), btn=document.getElementById('ls_best');
+    // облако точек (признак-амплитуда x в 0..1 → уровень y в 0..100), детерминированное
+    var rnd=lcg(3), PTS=[];
+    for(var i=0;i<26;i++){ var x=i/25; var y=100*x + 12*randn(rnd); PTS.push({x:x, y:Math.max(0,Math.min(100,y))}); }
+    // МНК-оптимум для наклона при свободном b (для кнопки и R²): считаем один раз
+    function fit(){
+      var n=PTS.length,sx=0,sy=0,sxx=0,sxy=0; PTS.forEach(function(p){sx+=p.x;sy+=p.y;sxx+=p.x*p.x;sxy+=p.x*p.y;});
+      var den=n*sxx-sx*sx, a=(n*sxy-sx*sy)/den, b=(sy-a*sx)/n; return {a:a,b:b};
+    }
+    var OPT=fit();
+    function sse(a){
+      // b подбираем оптимально при данном a (центрируем остатки), чтобы демонстрировать чистое влияние наклона
+      var n=PTS.length, mx=0,my=0; PTS.forEach(function(p){mx+=p.x;my+=p.y;}); mx/=n; my/=n;
+      var b=my-a*mx, s=0; PTS.forEach(function(p){ var e=p.y-(a*p.x+b); s+=e*e; }); return {sse:s,b:b};
+    }
+    function draw(){
+      var a=+sl.value; av.textContent=a;
+      var r=sse(a), b=r.b;
+      var ctx=plot.getContext('2d'), W=plot.width, H=plot.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), accent=css('--accent'), ok=css('--ok'), warn=css('--warn');
+      var pad=40;
+      function X(u){ return pad+u*(W-2*pad); }            // u в 0..1
+      function Y(v){ return H-pad-v/100*(H-2*pad); }       // v в 0..100
+      // оси
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad,H-pad); ctx.lineTo(W-pad,H-pad); ctx.moveTo(pad,pad); ctx.lineTo(pad,H-pad); ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('признак (амплитуда), норм.', W/2, H-10);
+      ctx.save(); ctx.translate(13,H/2); ctx.rotate(-Math.PI/2); ctx.fillText('уровень силы, %',0,0); ctx.restore();
+      // прямая
+      ctx.strokeStyle=ok; ctx.lineWidth=2.2;
+      ctx.beginPath(); ctx.moveTo(X(0),Y(a*0+b)); ctx.lineTo(X(1),Y(Math.max(-20,Math.min(120,a*1+b)))); ctx.stroke();
+      // остатки + точки
+      PTS.forEach(function(p){
+        var yp=a*p.x+b;
+        ctx.strokeStyle=warn; ctx.lineWidth=1.4;
+        ctx.beginPath(); ctx.moveTo(X(p.x),Y(p.y)); ctx.lineTo(X(p.x),Y(yp)); ctx.stroke();
+        ctx.fillStyle=accent; ctx.beginPath(); ctx.arc(X(p.x),Y(p.y),4,0,6.283); ctx.fill();
+      });
+      // R² этой прямой
+      var n=PTS.length, my=0; PTS.forEach(function(p){my+=p.y;}); my/=n;
+      var sstot=0; PTS.forEach(function(p){ sstot+=(p.y-my)*(p.y-my); });
+      var r2=1-r.sse/(sstot+1e-9);
+      var atMin=Math.abs(a-OPT.a)<3;
+      out.className = atMin ? 'readout ok' : 'readout bad';
+      out.innerHTML='Наклон a='+a+' → сумма квадратов ошибок SSE = <b class="big">'+fmt(r.sse,0)+
+        '</b>, R² этой прямой = <b>'+fmt(r2,2)+'</b>. '+
+        (atMin ? 'Ты рядом с минимумом SSE — это и есть решение МНК (a≈'+fmt(OPT.a,0)+').'
+               : 'Крути наклон: ищи, где SSE <b>минимальна</b> (там R² максимален).');
+    }
+    sl.addEventListener('input',draw);
+    if(btn) btn.addEventListener('click', function(){ sl.value=Math.round(OPT.a); draw(); });
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+
+  // ---------- иллюстрация сглаживания/задержки в блоке «почему» ----------
+  (function(){
+    var c=document.getElementById('sm_plot'); if(!c) return;
+    function draw(){
+      var ctx=c.getContext('2d'), W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ok=css('--ok'), warn=css('--warn');
+      var pad=24, N=200, rnd=lcg(9), i,xp;
+      function X(k){ return pad+k/(N-1)*(W-2*pad); }
+      function Y(v){ return H-pad-v/100*(H-2*pad); }
+      // истинная сила: ступенька 20→80 на середине
+      var truth=[]; for(i=0;i<N;i++) truth.push(i< N*0.4 ? 20 : 80);
+      // сырой выход: истина + шум
+      var raw=[]; for(i=0;i<N;i++) raw.push(Math.max(0,Math.min(100, truth[i] + 11*randn(rnd))));
+      // сглаженный: скользящее среднее M
+      var M=16, sm=[]; for(i=0;i<N;i++){ var a=Math.max(0,i-M+1), s=0,k=0; for(var j=a;j<=i;j++){s+=raw[j];k++;} sm.push(s/k); }
+      // сетка базовая
+      ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(pad,Y(0)); ctx.lineTo(W-pad,Y(0)); ctx.stroke();
+      // истина (ступенька)
+      ctx.strokeStyle=muted; ctx.lineWidth=2; ctx.setLineDash([5,4]); ctx.beginPath();
+      for(i=0;i<N;i++){ xp=X(i); i?ctx.lineTo(xp,Y(truth[i])):ctx.moveTo(xp,Y(truth[i])); } ctx.stroke(); ctx.setLineDash([]);
+      // сырой
+      ctx.strokeStyle=warn; ctx.lineWidth=1; ctx.globalAlpha=.85; ctx.beginPath();
+      for(i=0;i<N;i++){ xp=X(i); i?ctx.lineTo(xp,Y(raw[i])):ctx.moveTo(xp,Y(raw[i])); } ctx.stroke(); ctx.globalAlpha=1;
+      // сглаженный
+      ctx.strokeStyle=ok; ctx.lineWidth=2.2; ctx.beginPath();
+      for(i=0;i<N;i++){ xp=X(i); i?ctx.lineTo(xp,Y(sm[i])):ctx.moveTo(xp,Y(sm[i])); } ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('скользящее среднее сглаживает дрожь, но реагирует на скачок с задержкой ~M/2 окон', pad, 15);
+    }
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+</script>
+
+</body>
+</html>

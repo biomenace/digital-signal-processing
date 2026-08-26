@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E1 — Дискретизация и частота Найквиста </title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:22px; height:0; border-top-width:3px; border-top-style:solid; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 70px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E1</span>
+  <h1>Дискретизация и частота Найквиста </h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема, два интерактивных примера</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> как часто нужно замерять сигнал, чтобы его не потерять.
+    Компьютер не хранит плавную кривую — он замеряет её через равные промежутки и
+    запоминает числа (это и есть <b>дискретизация</b>). Если замерять слишком редко —
+    сигнал испортится ещё на входе, до всякой обработки.
+  </p>
+  <p style="margin-bottom:0">
+    Ниже — <b>два интерактивных примера</b>. Тяни ползунки и смотри, что
+    происходит. Цель работы — <b>не запустить код</b>, а понять три вещи: что такое
+    <span class="term" data-tip="Частота дискретизации: сколько раз в секунду замеряем сигнал.">частота дискретизации $F_д$</span>, что такое <span class="term" data-tip="Частота Найквиста: половина частоты дискретизации, F_N = F_д/2. Это верхний предел — частоты выше него оцифровать честно нельзя.">частота Найквиста $F_N=F_д/2$</span>, и почему при
+    $F_д<2f$ возникает <span class="term" data-tip="Алиасинг: когда частота сигнала выше Найквиста, отсчёты садятся на другую, более низкую волну — высокий сигнал прикидывается низким."><b>алиасинг</b></span> (высокий сигнал «прикидывается» низким). Под каждым
+    примером — короткие задания.
+  </p>
+</div>
+
+<h2>Теория — три формулы, и всё</h2>
+<div class="card">
+  <p style="margin-top:0"><b>1. Синус</b> задаётся тремя числами — амплитуда $A$, частота
+  $f$ (Гц), фаза $\varphi$:</p>
+  \[ s(t) = A\,\sin(2\pi f t + \varphi). \]
+  <p><b>2. Дискретизация</b>: замеряем сигнал $F_д$ раз в секунду (частота дискретизации).
+  <b>Частота Найквиста</b> — это половина от неё:</p>
+  \[ F_N = \frac{F_д}{2}. \]
+  <p style="margin-bottom:0"><b>3. Правило (теорема Котельникова):</b> чтобы сигнал не
+  испортился, частота дискретизации должна быть минимум вдвое выше частоты сигнала:</p>
+  \[ F_д \ge 2f \quad\Longleftrightarrow\quad f \le F_N. \]
+  <div class="warn" style="margin-bottom:0"><b>Алиасинг.</b> Если $f>F_N$, отсчёты лягут на
+  другую, более низкую волну — и высокий сигнал будет неотличим от низкого. Видимая
+  частота: $f_{\text{вид}}=|\,f-F_д\cdot\mathrm{round}(f/F_д)\,|$. Именно это и нужно
+  проверить в виджете ниже.</div>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 ============ -->
+<div class="lab">
+  <h3>Пример 1 · Один синус</h3>
+  <p style="margin-top:2px">Синяя линия — настоящий синус. Точки — отсчёты (что «видит»
+  компьютер при данной $F_д$). Оранжевый пунктир появляется, когда начинается алиасинг —
+  это ложная низкая волна, на которую садятся точки.</p>
+  <canvas id="sc1" class="scope" width="840" height="240"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span><b>настоящий</b> синус</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span><b>ложный</b> (алиас)</span>
+    <span>● отсчёты (частота $F_д$)</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Частота сигнала: сколько полных колебаний синуса за одну секунду. Единица — герц (Гц). Период одного колебания T = 1/f.">Частота $f$</span></label><input type="range" id="s1_f" min="1" max="40" step="1" value="9"><span class="val" id="s1_fv">9 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда: высота колебания — насколько сильно сигнал отклоняется от нуля вверх и вниз.">Амплитуда $A$</span></label><input type="range" id="s1_A" min="0.2" max="1.2" step="0.1" value="1.0"><span class="val" id="s1_Av">1.0</span></div>
+    <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Частота дискретизации: сколько раз в секунду мы замеряем (оцифровываем) сигнал. Чем она больше — тем чаще стоят точки-отсчёты. Обозначается F_д.">Частота $F_д$</span></label><input type="range" id="s1_fs" min="4" max="120" step="1" value="60"><span class="val" id="s1_fsv">60 Гц</span></div>
+  </div>
+  <div class="readout ok" id="s1_out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Поставь $f=10$ Гц. Медленно уменьшай $F_д$. При каком $F_д$ точки перестают
+          повторять синюю волну и появляется оранжевый пунктир? Сравни с $2f$.</li>
+      <li>Найди <b>минимальную</b> $F_д$, при которой синус ещё виден верно (без пунктира).
+          Запиши её и частоту Найквиста $F_N=F_д/2$.</li>
+      <li>Поставь $F_д=30$ Гц. Увеличивай $f$. При какой $f$ начинается алиасинг? Проверь,
+          что это ровно $F_N=15$ Гц — <b>вот почему частота Найквиста именно там</b>.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 ============ -->
+<div class="lab">
+  <h3>Пример 2 · Два синуса</h3>
+  <p style="margin-top:2px">Теперь сигнал — <b>сумма двух</b> синусов с разными частотами.
+  Достаточно, чтобы <b>хотя бы один</b> тон оказался выше Найквиста — и картинка исказится.
+  Правило прежнее, но по самой высокой частоте: $F_д \ge 2\,f_{\max}$.</p>
+  <canvas id="sc2" class="scope" width="840" height="240"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span><b>настоящая</b> сумма</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span><b>ложная</b> (алиас)</span>
+    <span>● отсчёты</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Частота первого тона (в Гц). В сумме два синуса с разными частотами f1 и f2.">Частота $f_1$</span></label><input type="range" id="s2_f1" min="1" max="40" step="1" value="6"><span class="val" id="s2_f1v">6 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда первого тона — его вклад (высота) в сумме.">Амплитуда $A_1$</span></label><input type="range" id="s2_A1" min="0.2" max="1.0" step="0.1" value="0.8"><span class="val" id="s2_A1v">0.8</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Частота второго тона (в Гц). Обычно берут выше f1 — именно он первым попадает в алиасинг.">Частота $f_2$</span></label><input type="range" id="s2_f2" min="1" max="40" step="1" value="24"><span class="val" id="s2_f2v">24 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда второго тона — его вклад (высота) в сумме.">Амплитуда $A_2$</span></label><input type="range" id="s2_A2" min="0.2" max="1.0" step="0.1" value="0.6"><span class="val" id="s2_A2v">0.6</span></div>
+    <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Частота дискретизации: сколько раз в секунду мы замеряем (оцифровываем) сигнал. Чем она больше — тем чаще стоят точки-отсчёты. Обозначается F_д.">Частота $F_д$</span></label><input type="range" id="s2_fs" min="4" max="120" step="1" value="70"><span class="val" id="s2_fsv">70 Гц</span></div>
+  </div>
+  <div class="readout ok" id="s2_out"></div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Оставь $f_1=6$, $f_2=24$ Гц. Опусти $F_д$ так, чтобы <b>только высокий</b> тон
+          ($f_2$) оказался выше Найквиста. Что стало с картинкой? А низкий тон испортился?</li>
+      <li>Подбери минимальную $F_д$, при которой <b>оба</b> тона видны верно. Проверь, что
+          это чуть больше $2\,f_{\max}=2f_2$.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ КАК СЧИТАТЬ (формулы + примеры) ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Откуда берётся формула видимой частоты (и как считать)<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Сначала — <b>почему</b> формула вообще работает. Это не «одно минус
+    другое наугад»: за ней стоит одна простая мысль. Прочитай раз — и дальше будешь считать
+    в уме, а не подставлять цифры вслепую. А чтобы не продираться через формулы вслепую —
+    <b>двигай эти два ползунка</b>, и все три картинки ниже покажут, что происходит.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Частота сигнала (Гц). Двигай — и смотри, как высокий сигнал начинает «сворачиваться».">Частота $f$</span></label><input type="range" id="d_f" min="1" max="40" step="1" value="7"><span class="val" id="d_fv">7 Гц</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Частота дискретизации (Гц) — как часто ставим отсчёты. Найквист = её половина.">Частота $F_д$</span></label><input type="range" id="d_fs" min="4" max="60" step="1" value="10"><span class="val" id="d_fsv">10 Гц</span></div>
+      </div>
+      <div class="readout ok" id="d_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Главная идея: отсчёты слепы к целым $F_д$</h3>
+    <p style="margin-top:2px">Мы замеряем сигнал только в моменты $t_n=n/F_д$ (где $n=0,1,2,\dots$) —
+    между отсчётами компьютер сигнала <b>не видит вообще</b>. Ключевой факт: если к частоте
+    прибавить <b>целое число раз $F_д$</b>, все отсчёты останутся <b>точно теми же</b>. Проверим —
+    подставим $t_n=n/F_д$:</p>
+    \[ \sin\!\bigl(2\pi (f+F_д)\,t_n\bigr)=\sin\!\bigl(2\pi f\,t_n+\underbrace{2\pi F_д\tfrac{n}{F_д}}_{=\,2\pi n}\bigr)
+       =\sin\!\bigl(2\pi f\,t_n+2\pi n\bigr)=\sin\!\bigl(2\pi f\,t_n\bigr). \]
+    <p style="margin-top:2px">Добавка $2\pi n$ — это ровно $n$ <b>целых оборотов</b> по кругу, а синус
+    через целые обороты повторяется. Значит отсчёты не могут отличить частоты
+    $f,\ f\pm F_д,\ f\pm 2F_д,\ \dots$ — для них это <b>один и тот же сигнал</b>. Вот <i>почему</i>
+    в формуле вычитают именно $F_д$ (и целое число раз): мы выкидываем то, что для отсчётов
+    невидимо.</p>
+
+    <canvas id="d_same" class="scope" width="840" height="150"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ синяя — настоящий $f$, оранжевый пунктир — его
+      «свёрнутый» двойник (видимая частота). Кривые <b>разные</b>, но чёрные точки-отсчёты
+      садятся <b>на обе сразу</b> — вот почему компьютер их не различает.</div>
+
+    <h3>Почему модуль (знак не виден)</h3>
+    <p style="margin-top:2px">После вычитания частота может стать отрицательной. Но
+    $\sin(-x)=-\sin(x)$ — форма колебания та же, просто «вверх ногами». На глаз (и на слух)
+    частота $-3$ Гц неотличима от $3$ Гц. Поэтому в конце берут <b>модуль</b>: знак невидим,
+    важен только «размер» частоты.</p>
+
+    <h3>Аналогия: колесо в вестерне</h3>
+    <p style="margin-top:2px">Камера снимает кадры через равные промежутки (это и есть $F_д$).
+    Если колесо между кадрами повернётся чуть меньше пол-оборота — видно, что едет вперёд.
+    Если чуть больше — глазу кажется, что оно крутится <b>назад</b> и медленно. Колесо то же,
+    «видимая» скорость другая — это тот же алиасинг.</p>
+
+    <canvas id="d_wheel" class="scope" width="840" height="200"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ <span style="color:var(--accent)">синяя</span> стрелка
+      крутится с настоящей частотой; серые вспышки — где стрелка была <b>в моменты отсчётов</b>;
+      <span style="color:var(--warn)">оранжевая</span> — как выглядит вращение, если смотреть только
+      по вспышкам. Подними $f$ выше Найквиста — оранжевая поедет <b>назад</b>.</div>
+
+    <h3>Отсюда и рецепт</h3>
+    <p style="margin-top:2px">Из всей невидимо-одинаковой пачки $f,\ f\pm F_д,\ f\pm2F_д,\dots$
+    отсчёты «показывают» тот вариант, что <b>ближе всего к нулю</b> (он попадает в окно
+    от $-F_д/2$ до $+F_д/2$). Чтобы его найти: делим $f/F_д$ — это «сколько шагов по $F_д$
+    укладывается в $f$»; округляем к ближайшему целому $k$ — это ближайший невидимый кусок
+    $k\cdot F_д$; вычитаем его и берём модуль:</p>
+    \[ k=\mathrm{round}\!\left(\frac{f}{F_д}\right),\qquad
+       f_{\text{вид}}=\bigl|\,f-k\cdot F_д\,\bigr|. \]
+    <p class="muted" style="margin-top:2px">$\mathrm{round}$ — округление к ближайшему целому:
+    $\mathrm{round}(0{,}7)=1$, $\mathrm{round}(0{,}4)=0$, $\mathrm{round}(1{,}5)=2$.</p>
+
+    <canvas id="d_line" class="scope" width="840" height="150"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ ось частот. Серые точки — вся «невидимая пачка»
+      $f\pm F_д,\ f\pm 2F_д,\dots$; <span style="color:var(--ok)">зелёная полоса</span> — окно
+      $[-F_N,\,F_N]$; <span style="color:var(--warn)">оранжевая</span> точка — единственная из пачки,
+      попавшая в окно (ближайшая к нулю). Её модуль и есть $f_{\text{вид}}$.</div>
+
+    <h3>Почему Найквист — ровно $F_д/2$</h3>
+    <p style="margin-top:2px">Окно «нескрученных» частот тянется от $-F_д/2$ до $+F_д/2$ — его
+    ширина как раз $F_д$. Всё, что выше $F_д/2$, при вычитании $F_д$ заворачивается обратно
+    внутрь окна. Поэтому самая высокая частота, которая ещё «показывает сама себя», —
+    это $F_N=F_д/2$. Это просто край окна.</p>
+    \[ F_N=\frac{F_д}{2}. \]
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Итого, порядок счёта (3 шага):</b></p>
+    <ol style="margin-top:2px">
+      <li>$F_N=F_д/2$.</li>
+      <li>если $f\le F_N$ — алиасинга нет, $f_{\text{вид}}=f$; если $f>F_N$ — идём дальше;</li>
+      <li>$k=\mathrm{round}(f/F_д)$, затем $f_{\text{вид}}=|\,f-k\cdot F_д\,|$.</li>
+    </ol>
+
+    <div class="formula-ex">
+      <b>Пример A (с алиасингом).</b> $f=7$ Гц, $F_д=10$ Гц.<br>
+      1) $F_N=10/2=5$ Гц.<br>
+      2) $7>5$ → <b>алиасинг есть</b>, считаем видимую.<br>
+      3) Неотличимая пачка (вычитаем/прибавляем $F_д=10$):
+         $\dots,\ 17,\ 7,\ {-3},\ {-13},\dots$ — ближе всего к нулю $-3$.<br>
+      &nbsp;&nbsp;&nbsp;То же формулой: $k=\mathrm{round}(7/10)=\mathrm{round}(0{,}7)=1$;
+         &nbsp;$f_{\text{вид}}=|\,7-1\cdot10\,|=|-3|=\mathbf{3}$ Гц.<br>
+      <span style="opacity:.85">Проверка: поставь в Примере 1 $f=7$, $F_д=10$ — оранжевый
+      пунктир пойдёт как синус 3 Гц, отсчёты лягут ровно на него.</span>
+    </div>
+
+    <div class="formula-ex">
+      <b>Пример B (без алиасинга).</b> $f=7$ Гц, $F_д=20$ Гц.<br>
+      1) $F_N=20/2=10$ Гц.<br>
+      2) $7\le10$ → алиасинга нет: $f_{\text{вид}}=7$ Гц. Синус виден верно.
+    </div>
+
+    <div class="formula-ex">
+      <b>Пример C (минимальная $F_д$).</b> Какая минимальная $F_д$ покажет $f=7$ Гц верно?<br>
+      Нужно $f\le F_N=F_д/2$, то есть $F_д\ge 2f=2\cdot7=\mathbf{14}$ Гц.<br>
+      <span style="opacity:.85">$F_д=14$ Гц — это ровно граница (тон садится на Найквист);
+      на практике берут с небольшим запасом, например 15–16 Гц.</span>
+    </div>
+
+    <p style="margin-bottom:4px"><b>Для суммы тонов</b> ($f_1+f_2+\dots$) каждый тон считают
+    <b>отдельно</b> по тем же трём шагам, а минимальную $F_д$ выбирают по самому высокому
+    тону: $F_д\ge 2f_{\max}$.</p>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Считать всё по трём шагам из блока
+  <b>«📐 Как это посчитать»</b> выше, а ответы <b>проверять</b> в интерактивных примерах.</p>
+
+  <h3 style="margin-top:6px">Часть А · один синус (Пример 1)</h3>
+  <p style="margin-top:2px">Поставь свою частоту $f$ и <b>запиши в отчёт</b>: (а) минимальную
+  целую $F_д$, при которой синус ещё виден верно; (б) частоту Найквиста $F_N=F_д/2$ для неё;
+  (в) видимую частоту при указанной (маленькой) $F_д$.</p>
+  <table>
+    <tr><th>Вариант</th><th>Частота $f$</th><th>Что записать</th></tr>
+    <tr><td>1</td><td>7 Гц</td><td>мин. $F_д$, $F_N$, видимая частота при $F_д=10$ Гц</td></tr>
+    <tr><td>2</td><td>11 Гц</td><td>мин. $F_д$, $F_N$, видимая частота при $F_д=15$ Гц</td></tr>
+    <tr><td>3</td><td>13 Гц</td><td>мин. $F_д$, $F_N$, видимая частота при $F_д=18$ Гц</td></tr>
+    <tr><td>4</td><td>17 Гц</td><td>мин. $F_д$, $F_N$, видимая частота при $F_д=24$ Гц</td></tr>
+    <tr><td>5</td><td>23 Гц</td><td>мин. $F_д$, $F_N$, видимая частота при $F_д=30$ Гц</td></tr>
+  </table>
+
+  <h3>Часть Б · составной сигнал из двух тонов (Пример 2)</h3>
+  <p style="margin-top:2px">Теперь сигнал — <b>сумма двух частот</b> (например 7 Гц + 15 Гц).
+  Задай оба тона и указанную $F_д$ в Примере 2 и <b>запиши в отчёт</b>: (а) частоту Найквиста
+  $F_N$; (б) <b>какой тон</b> попадает в алиасинг и его <b>видимую частоту</b> (посчитай по
+  формуле из блока выше и сверь с оранжевым пунктиром); (в) минимальную $F_д$, при которой
+  <b>оба</b> тона видны верно.</p>
+  <table>
+    <tr><th>Вариант</th><th>Тоны сигнала</th><th>Частота $F_д$</th></tr>
+    <tr><td>1</td><td>7 Гц + 15 Гц</td><td>20 Гц</td></tr>
+    <tr><td>2</td><td>9 Гц + 22 Гц</td><td>30 Гц</td></tr>
+    <tr><td>3</td><td>12 Гц + 18 Гц</td><td>25 Гц</td></tr>
+    <tr><td>4</td><td>6 Гц + 31 Гц</td><td>40 Гц</td></tr>
+    <tr><td>5</td><td>11 Гц + 27 Гц</td><td>24 Гц</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Подсказка: низкий тон почти всегда ниже Найквиста и
+  виден верно, а вот высокий при заданной $F_д$ — «сворачивается». Минимальная $F_д$ для всего
+  сигнала считается по <b>большей</b> частоте: $F_д\ge 2f_{\max}$.</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Сигнал в компьютере — это <b>набор отсчётов</b> (точек), снятых с частотой $F_д$.</li>
+    <li><b>Частота Найквиста</b> $F_N=F_д/2$ — это «потолок»: частоты выше него честно
+        оцифровать нельзя.</li>
+    <li><b>Алиасинг</b> — когда $f>F_N$ и высокий сигнал маскируется под низкий; на графике
+        отсчётов подделку не видно, поэтому $F_д$ выбирают <b>заранее</b>, зная частоту сигнала.</li>
+    <li>Для суммы сигналов правило — по <b>самой высокой</b> частоте: $F_д\ge 2f_{\max}$.</li>
+  </ul>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Что такое частота дискретизации и частота Найквиста? Как они связаны?</li>
+      <li>Сформулируй правило $F_д\ge 2f$. Что будет, если его нарушить?</li>
+      <li>Что такое алиасинг? Почему его не видно на графике отсчётов?</li>
+      <li>Как посчитать видимую (кажущуюся) частоту при алиасинге?</li>
+      <li>Для суммы двух синусов — по какой частоте выбирать $F_д$ и почему?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Кому интересно повторить в коде — есть маленький необязательный
+    скрипт <code>solution.py</code>: он строит настоящий синус, его отсчёты и ложную
+    (алиасную) волну для одного набора чисел и печатает $F_N$ и видимую частоту.
+    Запуск из папки <code>dsp/</code>: <kbd>./run.sh E1</kbd>. Для самой работы он не нужен —
+    всё, что важно, есть в примерах выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 · дальше: E2 — спектр (из каких частот состоит сигнал)
+</p>
+
+</div>
+
+<script>
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  // ---------- интерактивные осциллографы ----------
+  (function(){
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function signedAlias(f, Fs){ return f - Fs*Math.round(f/Fs); }
+
+    function draw(cv, tones, Fs){
+      var ctx = cv.getContext('2d'), W = cv.width, H = cv.height;
+      ctx.clearRect(0,0,W,H);
+      var ink=css('--ink'), muted=css('--muted'), line=css('--line'),
+          accent=css('--accent'), warn=css('--warn');
+      var pad=30, y0=H/2;
+      var fref = Math.min.apply(null, tones.map(function(t){return t.f;}));
+      var T = Math.min(1.5, Math.max(0.2, 6/Math.max(fref,1)));
+      var Amax = tones.reduce(function(s,t){return s+Math.abs(t.A);},0)*1.18 + 1e-6;
+      function xOf(t){ return pad + (t/T)*(W-2*pad); }
+      function yOf(v){ return y0 - (v/Amax)*(H/2 - 18); }
+      function sumAt(tt, alias){
+        var s=0; for(var i=0;i<tones.length;i++){
+          var ff = alias ? signedAlias(tones[i].f, Fs) : tones[i].f;
+          s += tones[i].A*Math.sin(2*Math.PI*ff*tt);
+        } return s;
+      }
+      // ось
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+      // настоящий сигнал
+      var N=900, i, tt, x, y;
+      ctx.strokeStyle=accent; ctx.lineWidth=2; ctx.beginPath();
+      for(i=0;i<=N;i++){ tt=T*i/N; x=xOf(tt); y=yOf(sumAt(tt,false)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+      ctx.stroke();
+      // алиасинг?
+      var aliasing = tones.some(function(t){ return t.f > Fs/2 + 1e-9; });
+      if(aliasing){
+        ctx.strokeStyle=warn; ctx.lineWidth=2; ctx.setLineDash([6,5]); ctx.beginPath();
+        for(i=0;i<=N;i++){ tt=T*i/N; x=xOf(tt); y=yOf(sumAt(tt,true)); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }
+        ctx.stroke(); ctx.setLineDash([]);
+      }
+      // отсчёты
+      var nmax=Math.floor(T*Fs+1e-9);
+      for(var n=0;n<=nmax;n++){
+        tt=n/Fs; if(tt>T+1e-9) break; x=xOf(tt); y=yOf(sumAt(tt,false));
+        ctx.strokeStyle=muted; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,y0); ctx.lineTo(x,y); ctx.stroke();
+        ctx.fillStyle=ink; ctx.beginPath(); ctx.arc(x,y,3.3,0,2*Math.PI); ctx.fill();
+      }
+      return aliasing;
+    }
+
+    function fmt(x){ return (Math.round(x*10)/10).toString().replace('.', ','); }
+
+    // -------- виджет 1 --------
+    var w1 = {
+      f: document.getElementById('s1_f'), A: document.getElementById('s1_A'), fs: document.getElementById('s1_fs'),
+      fv: document.getElementById('s1_fv'), Av: document.getElementById('s1_Av'), fsv: document.getElementById('s1_fsv'),
+      cv: document.getElementById('sc1'), out: document.getElementById('s1_out')
+    };
+    function upd1(){
+      var f=+w1.f.value, A=+w1.A.value, Fs=+w1.fs.value;
+      w1.fv.textContent=f+' Гц'; w1.Av.textContent=fmt(A); w1.fsv.textContent=Fs+' Гц';
+      var al = draw(w1.cv, [{f:f,A:A}], Fs);
+      var Fn=Fs/2, app=Math.abs(signedAlias(f,Fs));
+      if(!al){
+        w1.out.className='readout ok';
+        w1.out.innerHTML='$F_д='+Fs+'$ Гц, Найквист $F_N='+fmt(Fn)+'$ Гц. Тон '+f+
+          ' Гц <b>ниже Найквиста</b> — <span class="big">виден верно</span>. Запас: $F_д/2f='+fmt(Fs/(2*f))+'$.';
+      } else {
+        w1.out.className='readout bad';
+        w1.out.innerHTML='$F_д='+Fs+'$ Гц, Найквист $F_N='+fmt(Fn)+'$ Гц. Тон '+f+
+          ' Гц <b>выше Найквиста</b> → <span class="big">АЛИАСИНГ</span>: выглядит как '+fmt(app)+
+          ' Гц (нужно $F_д\\ge'+(2*f)+'$ Гц).';
+      }
+      if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([w1.out]);
+    }
+    [w1.f,w1.A,w1.fs].forEach(function(el){ el.addEventListener('input', upd1); });
+
+    // -------- виджет 2 --------
+    var w2 = {
+      f1:document.getElementById('s2_f1'), A1:document.getElementById('s2_A1'),
+      f2:document.getElementById('s2_f2'), A2:document.getElementById('s2_A2'), fs:document.getElementById('s2_fs'),
+      f1v:document.getElementById('s2_f1v'), A1v:document.getElementById('s2_A1v'),
+      f2v:document.getElementById('s2_f2v'), A2v:document.getElementById('s2_A2v'), fsv:document.getElementById('s2_fsv'),
+      cv:document.getElementById('sc2'), out:document.getElementById('s2_out')
+    };
+    function upd2(){
+      var f1=+w2.f1.value, A1=+w2.A1.value, f2=+w2.f2.value, A2=+w2.A2.value, Fs=+w2.fs.value;
+      w2.f1v.textContent=f1+' Гц'; w2.A1v.textContent=fmt(A1);
+      w2.f2v.textContent=f2+' Гц'; w2.A2v.textContent=fmt(A2); w2.fsv.textContent=Fs+' Гц';
+      var al = draw(w2.cv, [{f:f1,A:A1},{f:f2,A:A2}], Fs);
+      var Fn=Fs/2, fmax=Math.max(f1,f2);
+      if(!al){
+        w2.out.className='readout ok';
+        w2.out.innerHTML='$F_д='+Fs+'$ Гц, $F_N='+fmt(Fn)+'$ Гц. Оба тона ('+f1+' и '+f2+
+          ' Гц) ниже Найквиста — <span class="big">видны верно</span>.';
+      } else {
+        var bad=[]; if(f1>Fn) bad.push(f1+' Гц→'+fmt(Math.abs(signedAlias(f1,Fs)))+' Гц');
+        if(f2>Fn) bad.push(f2+' Гц→'+fmt(Math.abs(signedAlias(f2,Fs)))+' Гц');
+        w2.out.className='readout bad';
+        w2.out.innerHTML='$F_д='+Fs+'$ Гц, $F_N='+fmt(Fn)+'$ Гц. <span class="big">АЛИАСИНГ</span>: '+
+          bad.join(', ')+'. Нужно $F_д\\ge'+(2*fmax)+'$ Гц (по большей частоте).';
+      }
+      if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([w2.out]);
+    }
+    [w2.f1,w2.A1,w2.f2,w2.A2,w2.fs].forEach(function(el){ el.addEventListener('input', upd2); });
+
+    window.__redrawScopes = function(){ upd1(); upd2(); };
+    upd1(); upd2();
+  })();
+
+  // ---------- иллюстрации к блоку «откуда берётся формула» ----------
+  (function(){
+    var ef=document.getElementById('d_f'), es=document.getElementById('d_fs');
+    if(!ef||!es) return;
+    var efv=document.getElementById('d_fv'), esv=document.getElementById('d_fsv'), out=document.getElementById('d_out');
+    var cSame=document.getElementById('d_same'), cWheel=document.getElementById('d_wheel'), cLine=document.getElementById('d_line');
+
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function signedAlias(f, Fs){ return f - Fs*Math.round(f/Fs); }
+    function fmt(x){ return (Math.round(x*10)/10).toString().replace('.', ','); }
+    function V(){ return { f:+ef.value, Fs:+es.value }; }
+
+    // --- картинка 1: одни и те же отсчёты на двух кривых ---
+    function drawSame(){
+      var v=V(), f=v.f, Fs=v.Fs, fa=signedAlias(f,Fs);
+      var ctx=cSame.getContext('2d'), W=cSame.width, H=cSame.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), warn=css('--warn'), ink=css('--ink'), muted=css('--muted');
+      var pad=26, y0=H/2, T=Math.min(1.2, Math.max(0.25, 6/Math.max(f,1)));
+      function xOf(t){return pad+(t/T)*(W-2*pad);}
+      function yOf(val){return y0-val*(H/2-16);}
+      var N=800,i,t,x,y;
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.beginPath();
+      for(i=0;i<=N;i++){t=T*i/N;x=xOf(t);y=yOf(Math.sin(2*Math.PI*f*t));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+      if(Math.abs(fa)!==f){
+        ctx.strokeStyle=warn;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();
+        for(i=0;i<=N;i++){t=T*i/N;x=xOf(t);y=yOf(Math.sin(2*Math.PI*fa*t));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.setLineDash([]);
+      }
+      var nmax=Math.floor(T*Fs+1e-9);
+      for(var n=0;n<=nmax;n++){var tt=n/Fs;if(tt>T+1e-9)break;x=xOf(tt);y=yOf(Math.sin(2*Math.PI*f*tt));
+        ctx.strokeStyle=muted;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y);ctx.stroke();
+        ctx.fillStyle=ink;ctx.beginPath();ctx.arc(x,y,3.3,0,2*Math.PI);ctx.fill();}
+    }
+
+    // --- картинка 3: числовая ось «сворачивания» ---
+    function drawLine(){
+      var v=V(), f=v.f, Fs=v.Fs, Fn=Fs/2, fs2=signedAlias(f,Fs), fvid=Math.abs(fs2);
+      var ctx=cLine.getContext('2d'), W=cLine.width, H=cLine.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), warn=css('--warn'), muted=css('--muted'), ok=css('--ok'), oks=css('--ok-soft');
+      var R=Math.max(45,f+2), padL=18,padR=18, y0=H*0.52;
+      function xOf(fr){return padL+((fr+R)/(2*R))*(W-padL-padR);}
+      ctx.fillStyle=oks; ctx.fillRect(xOf(-Fn),y0-38,xOf(Fn)-xOf(-Fn),76);
+      ctx.strokeStyle=ok;ctx.lineWidth=1;ctx.setLineDash([4,3]);
+      ctx.beginPath();ctx.moveTo(xOf(-Fn),y0-38);ctx.lineTo(xOf(-Fn),y0+38);ctx.moveTo(xOf(Fn),y0-38);ctx.lineTo(xOf(Fn),y0+38);ctx.stroke();ctx.setLineDash([]);
+      ctx.strokeStyle=line;ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(padL,y0);ctx.lineTo(W-padR,y0);ctx.stroke();
+      ctx.strokeStyle=muted;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(xOf(0),y0-6);ctx.lineTo(xOf(0),y0+6);ctx.stroke();
+      ctx.fillStyle=muted;ctx.font='12px sans-serif';ctx.textAlign='center';ctx.fillText('0',xOf(0),y0+20);
+      ctx.fillStyle=ok;ctx.fillText('−F_N',xOf(-Fn),y0-44); ctx.fillText('+F_N='+fmt(Fn),xOf(Fn),y0-44);
+      for(var m=-6;m<=6;m++){var fr=f+m*Fs; if(fr<-R||fr>R)continue; var x=xOf(fr);
+        var isFold=Math.abs(fr-fs2)<1e-6;
+        ctx.fillStyle=isFold?warn:muted; ctx.beginPath();ctx.arc(x,y0,isFold?6.5:4,0,2*Math.PI);ctx.fill();}
+      ctx.fillStyle=accent;ctx.font='bold 12px sans-serif';ctx.fillText('f='+f,xOf(f),y0-14);
+      var xf=xOf(f), xfold=xOf(fs2);
+      if(Math.abs(xf-xfold)>2){ ctx.strokeStyle=warn;ctx.lineWidth=1.6;ctx.setLineDash([4,3]);
+        ctx.beginPath();ctx.moveTo(xf,y0-8);ctx.quadraticCurveTo((xf+xfold)/2,y0-32,xfold,y0-8);ctx.stroke();ctx.setLineDash([]);}
+      if(f<=Fn){ ctx.fillStyle=ok;ctx.font='bold 12px sans-serif';ctx.fillText('в окне → f_вид='+fmt(f)+' (верно)',xOf(f),y0+24); }
+      else { ctx.fillStyle=warn;ctx.font='bold 12px sans-serif';ctx.fillText(fmt(fs2)+'  → |'+fmt(fs2)+'| = '+fmt(fvid)+' Гц',xfold,y0+24); }
+    }
+
+    // --- картинка 2: вращающееся колесо (анимация) ---
+    var SPEED=0.16;
+    function drawWheel(ts){
+      var v=V(), f=v.f, Fs=v.Fs, fa=signedAlias(f,Fs);
+      var ctx=cWheel.getContext('2d'), W=cWheel.width, H=cWheel.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),accent=css('--accent'),warn=css('--warn'),ink=css('--ink'),muted=css('--muted');
+      var cx=H*0.55, cy=H/2, Rr=H*0.34, vt=(ts/1000)*SPEED, i,k,ang,x,y;
+      ctx.strokeStyle=line;ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(cx,cy,Rr,0,2*Math.PI);ctx.stroke();
+      var ns=Math.floor(vt*Fs), K=Math.min(ns,40);
+      for(i=K;i>=0;i--){ k=ns-i; if(k<0) continue; ang=2*Math.PI*f*(k/Fs);
+        x=cx+Rr*Math.cos(-ang); y=cy+Rr*Math.sin(-ang);
+        ctx.globalAlpha=0.12+0.88*(K?(K-i)/K:1); ctx.fillStyle=muted;
+        ctx.beginPath();ctx.arc(x,y,3,0,2*Math.PI);ctx.fill(); ctx.globalAlpha=1; }
+      var ta=2*Math.PI*f*vt;
+      ctx.strokeStyle=accent;ctx.lineWidth=2.6;ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Rr*Math.cos(-ta),cy+Rr*Math.sin(-ta));ctx.stroke();
+      var aa=2*Math.PI*fa*vt;
+      ctx.strokeStyle=warn;ctx.lineWidth=2.6;ctx.setLineDash([5,4]);ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+Rr*0.68*Math.cos(-aa),cy+Rr*0.68*Math.sin(-aa));ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=ink;ctx.beginPath();ctx.arc(cx,cy,3.5,0,2*Math.PI);ctx.fill();
+      var tx=cx+Rr+34, ty=cy-18; ctx.textAlign='left';
+      ctx.fillStyle=accent;ctx.font='14px sans-serif';ctx.fillText('настоящая: '+f+' Гц (вперёд)',tx,ty);
+      var dir=fa>0?'вперёд':(fa<0?'НАЗАД':'на месте');
+      ctx.fillStyle=warn;ctx.fillText('видимая: '+fmt(Math.abs(fa))+' Гц ('+dir+')',tx,ty+24);
+      ctx.fillStyle=muted;ctx.font='12px sans-serif';ctx.fillText('вспышки — моменты отсчётов, F_д='+Fs+' Гц',tx,ty+48);
+    }
+
+    function updOut(){
+      var v=V(), f=v.f, Fs=v.Fs, Fn=Fs/2, fs2=signedAlias(f,Fs), fvid=Math.abs(fs2), html;
+      if(f<=Fn){ out.className='readout ok';
+        html='$f='+f+'$ Гц $\\le F_N='+fmt(Fn)+'$ Гц → алиасинга нет, видно верно: $f_{вид}='+f+'$ Гц.';
+      } else { out.className='readout bad'; var k=Math.round(f/Fs);
+        html='$f='+f+'>F_N='+fmt(Fn)+'$ → алиасинг. $k=\\mathrm{round}('+f+'/'+Fs+')='+k+
+             '$, ближайший двойник $'+f+'-'+k+'\\!\\cdot\\!'+Fs+'='+fmt(fs2)+'$ → видно $|'+fmt(fs2)+'|=\\mathbf{'+fmt(fvid)+'}$ Гц.';
+      }
+      out.innerHTML=html;
+      if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([out]);
+    }
+
+    function redrawStatic(){ efv.textContent=(+ef.value)+' Гц'; esv.textContent=(+es.value)+' Гц'; drawSame(); drawLine(); updOut(); }
+    ef.addEventListener('input', redrawStatic);
+    es.addEventListener('input', redrawStatic);
+
+    // цепляемся к общему пересчёту темы, не затирая существующий
+    var prev = window.__redrawScopes;
+    window.__redrawScopes = function(){ if(prev) prev(); redrawStatic(); };
+
+    function frame(ts){ drawWheel(ts||0); requestAnimationFrame(frame); }
+    redrawStatic();
+    requestAnimationFrame(frame);
+  })();
+</script>
+
+</body>
+</html>

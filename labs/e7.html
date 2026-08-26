@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E7 — Классификация жестов: вектор признаков в класс</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+    --c1:#2d6cdf; --c2:#d9822b; --c3:#0f9d58; --c4:#a24bd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+    --c1:#6ea0ff; --c2:#e0a45f; --c3:#4cc98a; --c4:#c07ff0;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px;}
+  .swl{display:inline-block; width:22px; height:0; border-top-width:3px; border-top-style:solid; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl select{flex:1; padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px;}
+  .ctrl .val{flex:0 0 70px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .stepbtn{cursor:pointer; background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:9px; padding:7px 16px; font-size:16px; font-weight:700; box-shadow:var(--shadow);}
+  .stepbtn:hover{transform:translateY(-1px);}
+  .stepbar{display:flex; align-items:center; gap:14px; margin:8px 0;}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E7</span>
+  <h1>Классификация жестов — из вектора признаков в класс</h1>
+  <p>Серия «синус → протез» · часть 2 · одна тема: обучить машину узнавать жест по вектору чисел и честно измерить, как хорошо это выходит</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> в E6 мы научились превращать окно ЭМГ в <b>вектор признаков</b>
+    (56 чисел). Теперь — последний шаг протеза: по этому вектору <b>назвать жест</b>. Этим
+    занимается <span class="term" data-tip="Классификатор — алгоритм, который по вектору чисел выдаёт метку класса (жест). Сначала учится на размеченных примерах, потом предсказывает для новых.">классификатор</span>:
+    сначала он <b>учится</b> на размеченных примерах («вот такой вектор — это кулак»), а потом
+    <b>предсказывает</b> класс для нового, ещё не виденного окна.
+  </p>
+  <p style="margin-bottom:0">
+    Цель работы — <b>не запустить код</b>, а понять три вещи: что такое обучение и
+    предсказание; что показывает <span class="term" data-tip="Confusion matrix (матрица ошибок): таблица, где строка — истинный класс, столбец — предсказанный. На диагонали — верные ответы, вне неё — путаница.">confusion matrix</span>
+    и как по ней увидеть, <b>какие жесты путаются</b>; и почему обучать и тестировать нужно на
+    <b>разных</b> данных (<span class="term" data-tip="Train/test: обучающая выборка (train) — примеры, на которых модель учится; тестовая (test) — отдельные примеры, на которых честно проверяют. Нельзя тестировать на обучающих.">train/test</span>).
+    Всё — на настоящих данных браслета MYO.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0"><b>1. Обучение.</b> Даём классификатору много пар «вектор признаков →
+  правильный жест». Он подбирает внутренние параметры так, чтобы на этих примерах ошибаться
+  как можно реже. Три классических линейных модели:</p>
+  <ul style="margin:4px 0">
+    <li><b><span class="term" data-tip="LDA — Linear Discriminant Analysis: проецирует вектор на удачные оси и относит к классу с ближайшим центром.">LDA</span></b> — считает «центр» каждого класса и относит новый вектор к ближайшему (с поправкой на разброс);</li>
+    <li><b><span class="term" data-tip="Логистическая регрессия: проводит прямые границы между классами; выдаёт ещё и вероятность класса.">логистическая регрессия</span></b> — проводит прямые <b>границы</b> между классами;</li>
+    <li><b><span class="term" data-tip="Линейный SVM — Support Vector Machine: граница, максимально удалённая от точек обоих классов (широкий зазор).">линейный SVM</span></b> — тоже граница, но проведённая с максимальным <b>зазором</b>.</li>
+  </ul>
+  <p style="margin:6px 0"><b>2. Предсказание.</b> Новый вектор $x$ → модель выдаёт метку класса
+  $\hat y$. Сравниваем с истинной $y$: совпало — верно, нет — ошибка.</p>
+  <p style="margin:6px 0"><b>3. Точность.</b> Доля верно угаданных окон на тесте:</p>
+  \[ \text{acc}=\frac{\text{число верных}}{\text{всего окон}}. \]
+  <div class="note" style="margin-bottom:0"><b>Confusion matrix.</b> Точность — одно число, оно
+  не говорит <b>что</b> с чем путается. Матрица ошибок $N\times N$ говорит: строка — истинный
+  класс, столбец — что предсказала модель. На <b>диагонали</b> — верные ответы; яркая клетка
+  <b>вне</b> диагонали — пара жестов, которые модель путает.</div>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 · confusion matrix (реальные данные) ============ -->
+<div class="lab">
+  <h3>Виджет 1 · Confusion matrix и точность (данные MYO)</h3>
+  <p style="margin-top:2px">Классификатор обучен на <b>серии 1</b> первого испытуемого, а проверен
+  на <b>отдельной серии 2</b> того же человека (честный тест). Выбери модель — и смотри матрицу:
+  клетка тем ярче, чем больше окон туда попало; <b>диагональ</b> (обведена) — верные ответы.
+  Яркая клетка вне диагонали — вот где путаница.</p>
+  <div class="controls">
+    <div class="ctrl"><label>Классификатор</label>
+      <select id="cm_clf">
+        <option value="lda">LDA</option>
+        <option value="logreg">Логистическая регрессия</option>
+        <option value="svm">Линейный SVM</option>
+      </select></div>
+    <div class="ctrl"><label>&nbsp;</label><span class="muted" id="cm_hint">строки — истина, столбцы — предсказание</span></div>
+  </div>
+  <canvas id="cm_plot" class="scope" width="840" height="440"></canvas>
+  <div class="legend">
+    <span>тёмная клетка — <b>много</b> окон</span>
+    <span><span class="sw" style="background:transparent;border:2px solid var(--ok)"></span>обведена диагональ — верные</span>
+  </div>
+  <div class="readout ok" id="cm_out"></div>
+  <div class="tasklist">
+    <b>Задания (меняй классификатор):</b>
+    <ol style="margin:6px 0 0">
+      <li>Пройди все три модели и запиши <b>точность</b> каждой. Какая выиграла?</li>
+      <li>Для лучшей модели найди самую яркую клетку <b>вне диагонали</b>. Какие <b>два жеста</b>
+          она путает сильнее всего (истинный → предсказанный)?</li>
+      <li>Найди класс с самой «чистой» строкой (почти всё на диагонали). Почему именно он
+          распознаётся легче всего?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 · предскажи одно окно ============ -->
+<div class="lab">
+  <h3>Виджет 2 · Предскажи одно окно</h3>
+  <p style="margin-top:2px">Несколько реальных тестовых окон по очереди. Показан истинный жест,
+  короткий (усреднённый по каналам) вектор признаков и что предсказала каждая из трёх моделей.
+  Листай кнопками ◀ ▶ и смотри, где модели ошибаются, а где сходятся.</p>
+  <div class="stepbar">
+    <button class="stepbtn" id="ex_prev">◀</button>
+    <span class="muted" id="ex_idx">окно 1 из 8</span>
+    <button class="stepbtn" id="ex_next">▶</button>
+  </div>
+  <canvas id="ex_plot" class="scope" width="840" height="150"></canvas>
+  <div class="legend" id="ex_leg"></div>
+  <div class="readout ok" id="ex_out"></div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Пролистай все окна. На скольких <b>все три</b> модели ответили верно?</li>
+      <li>Найди окно, где хотя бы одна модель <b>ошиблась</b>. Совпадает ли эта ошибка с яркой
+          вне-диагональной клеткой из Виджета 1?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Как классификатор проводит границу — и почему это работает<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Классификатор — не чёрный ящик и не «нейросеть угадала». В основе — одна
+    простая мысль: <b>похожие векторы лежат рядом</b> в пространстве признаков, а разные жесты
+    образуют <b>разные облака</b> точек. Задача модели — провести между облаками <b>границу</b>.
+    Ниже — игрушечный пример на двух классах: <b>двигай наклон границы</b> и смотри на живой
+    счётчик ошибок.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Наклон разделяющей прямой. Классификатор ищет угол, при котором ошибок меньше всего.">Наклон границы</span></label><input type="range" id="b_ang" min="-90" max="90" step="1" value="35"><span class="val" id="b_angv">35°</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Сдвиг границы поперёк — куда её подвинуть между облаками.">Сдвиг границы</span></label><input type="range" id="b_off" min="-100" max="100" step="1" value="0"><span class="val" id="b_offv">0</span></div>
+      </div>
+      <div class="readout ok" id="b_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Игрушечный пример: два облака, одна прямая</h3>
+    <p style="margin-top:2px">Два жеста — два облака точек. Всё, что по одну сторону прямой,
+    модель зовёт классом А, по другую — классом Б. Точки не той стороны — ошибки (красные).
+    Крути наклон и сдвиг: есть положение, где ошибок <b>минимум</b> — именно его и ищет обучение.</p>
+    <canvas id="b_plot" class="scope" width="840" height="300"></canvas>
+    <div class="legend" style="margin-bottom:12px">
+      <span><span class="sw" style="background:var(--c1)"></span>класс А</span>
+      <span><span class="sw" style="background:var(--c2)"></span>класс Б</span>
+      <span><span class="swl" style="border-color:var(--ink)"></span>граница</span>
+      <span><span class="sw" style="background:var(--warn)"></span>ошибка (не та сторона)</span>
+    </div>
+
+    <h3>Три модели — три способа провести границу</h3>
+    <p style="margin-top:2px">Все три модели, что в виджетах, — <b>линейные</b>: граница между
+    классами — прямая (в 56-мерии — плоскость). Отличается лишь <i>как</i> они её выбирают:</p>
+    <ul style="margin:4px 0">
+      <li><b>LDA</b> — считает <b>центр</b> каждого облака и его разброс, ставит границу
+          посередине (перпендикулярно линии, соединяющей центры, с поправкой на форму облаков).
+          Новый вектор → к <b>ближайшему центру</b>.</li>
+      <li><b>Логистическая регрессия</b> — двигает прямую так, чтобы <b>штраф за ошибки</b> был
+          минимален; заодно выдаёт <b>вероятность</b> класса (насколько уверена).</li>
+      <li><b>Линейный SVM</b> — ставит границу с <b>максимальным зазором</b>: как можно дальше от
+          ближайших точек обоих классов. Широкий зазор → устойчивее к новым данным.</li>
+    </ul>
+    <canvas id="c_plot" class="scope" width="840" height="300"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ те же два облака; <span style="color:var(--c3)">зелёная</span>
+      — граница «ближе к центрам» (LDA-идея), <span style="color:var(--warn)">оранжевая</span> —
+      с широким <b>зазором</b> (SVM-идея). Полупрозрачная полоса — сам зазор SVM.</div>
+
+    <h3>Почему train и test обязательно разные</h3>
+    <p style="margin-top:2px">Если проверять модель на тех же окнах, на которых она училась, она
+    может просто <b>запомнить</b> их и показать «100%» — а на новом жесте провалиться. Это как
+    сдать экзамен, подсмотрев именно эти задачи заранее. Честная оценка — только на <b>новых</b>
+    данных, которые модель <b>не видела</b>. Поэтому в Виджете 1 обучение идёт на серии 1, а
+    проверка — на отдельной серии 2.</p>
+    <div class="warn" style="margin:8px 0"><b>Переобучение (overfitting).</b> Модель, идеально
+    угадывающая обучающие окна, но плохо — новые, «зазубрила», а не «поняла». Именно поэтому
+    точность считают <b>на тесте</b>, а не на train. Подробно — в E8.</div>
+
+    <h3>Что показывает confusion matrix</h3>
+    <p style="margin-top:2px">Одна точность (напр. 0,8) не говорит, <b>где</b> 20% ошибок. Матрица
+    раскладывает их по парам: строка $i$ = истинный класс, столбец $j$ = предсказанный. Число в
+    клетке $(i,j)$ — сколько окон класса $i$ модель назвала классом $j$. Диагональ ($i=j$) —
+    верные. Яркая клетка вне диагонали — <b>систематическая путаница</b> двух похожих жестов
+    (например, «сгибание» и «разгибание» задействуют соседние мышцы → похожие векторы).</p>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Итого, конвейер классификации (4 шага):</b></p>
+    <ol style="margin-top:2px">
+      <li>берём размеченные векторы признаков (из E6) — это train;</li>
+      <li>обучаем модель (LDA / logreg / SVM): она проводит границы между классами;</li>
+      <li>на <b>отдельных</b> окнах (test) предсказываем класс каждого;</li>
+      <li>сравниваем с истиной → точность и confusion matrix.</li>
+    </ol>
+
+    <div class="formula-ex">
+      <b>Пример точности.</b> На тесте 200 окон, верно угадано 168.<br>
+      acc $=168/200=\mathbf{0{,}84}$ (84%). Матрица покажет, что из 32 ошибок,
+      скажем, 20 — это «сгибание», названное «разгибанием» → яркая клетка на пересечении
+      этих двух строки/столбца.
+    </div>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Часть А проверяется в <b>Виджете 1</b> (матрица), часть Б — по той же
+  матрице (разбор путаниц). Записывай числа и выводы.</p>
+
+  <h3 style="margin-top:6px">Часть А · точность и главная путаница</h3>
+  <p style="margin-top:2px">Выбери в Виджете 1 <b>указанный</b> классификатор. <b>Запиши в отчёт:</b>
+  (а) его точность; (б) какие <b>два жеста</b> путаются сильнее всего (самая яркая клетка вне
+  диагонали, в формате «истинный → предсказанный»); (в) сколько окон в этой клетке.</p>
+  <table>
+    <tr><th>Вариант</th><th>Классификатор</th><th>Что записать</th></tr>
+    <tr><td>1</td><td>LDA</td><td>точность, главная пара-путаница, число окон в клетке</td></tr>
+    <tr><td>2</td><td>Логистическая регрессия</td><td>то же</td></tr>
+    <tr><td>3</td><td>Линейный SVM</td><td>то же</td></tr>
+    <tr><td>4</td><td>все три</td><td>таблица точностей; у какой модели путаница самая сильная</td></tr>
+    <tr><td>5</td><td>LDA против SVM</td><td>чья точность выше и на сколько; совпадает ли главная путаница</td></tr>
+  </table>
+
+  <h3>Часть Б · объясни путаницы и предложи улучшение</h3>
+  <p style="margin-top:2px">По confusion matrix лучшего классификатора <b>объясни</b>: почему именно
+  эти два жеста путаются (какие мышцы/каналы у них похожи — вспомни E6)? Затем <b>предложи</b>,
+  чем помочь: добавить признак, канал, окно подлиннее, больше обучающих данных — и почему это
+  должно развести именно эту пару. Сверься с Виджетом 2: найди конкретное окно, где эта путаница
+  случилась.</p>
+  <table>
+    <tr><th>Вариант</th><th>Разобрать пару</th><th>Дополнительно</th></tr>
+    <tr><td>1</td><td>самую яркую вне-диагональ у LDA</td><td>предложи 1 улучшение и обоснуй</td></tr>
+    <tr><td>2</td><td>сгибание ↔ разгибание</td><td>почему соседние мышцы дают похожий вектор</td></tr>
+    <tr><td>3</td><td>кулак ↔ сгибание</td><td>какой признак (из E6) их развёл бы</td></tr>
+    <tr><td>4</td><td>любую пару, где ошибок ≥ 5</td><td>найди это окно в Виджете 2</td></tr>
+    <tr><td>5</td><td>почему «покой» почти не путается</td><td>что это говорит о его векторе признаков</td></tr>
+  </table>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li><b>Классификатор</b> учится на размеченных векторах, а потом предсказывает класс нового
+        окна — это и есть «мозг» протеза.</li>
+    <li>Линейные модели (LDA / логистич. регрессия / SVM) проводят между классами <b>границу</b>;
+        отличаются лишь способом её выбрать.</li>
+    <li><b>Точность</b> — одно число; <b>confusion matrix</b> показывает, <b>какие</b> жесты
+        путаются (яркие клетки вне диагонали).</li>
+    <li>Оценивать нужно <b>на отдельных</b> данных (train ≠ test), иначе модель «зазубрит» и
+        оценка будет обманчивой.</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик.</b> Вектор признаков — из <b>E6</b>; здесь
+  мы отдали его классификатору. Но тест «серия 1 → серия 2 одного человека» — ещё щадящий. Что
+  будет на <b>другом</b> дне или <b>другом</b> человеке (и как ловить переобучение) — в <b>E8</b>.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Что делает классификатор на этапе обучения и на этапе предсказания?</li>
+      <li>Чем отличаются LDA, логистическая регрессия и линейный SVM? Что у них общего?</li>
+      <li>Что такое точность? Почему её одной мало для оценки классификатора?</li>
+      <li>Как устроена confusion matrix? Что на диагонали, что вне неё?</li>
+      <li>Почему нельзя тестировать на обучающих данных? Что такое переобучение?</li>
+      <li>Как по confusion matrix понять, какие жесты стоит «развести» новыми признаками?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный <code>solution.py</code> берёт две серии одного
+    испытуемого из <code>signals_demo/</code> (или полный кэш), режет на окна и считает признаки
+    через общий модуль <code>datasets/emg_common.py</code>, обучает <b>LDA / логистическую
+    регрессию / линейный SVM</b> на серии 1, проверяет на серии 2 и печатает <b>точность</b> и
+    <b>confusion matrix</b> каждой модели, а матрицу лучшей — рисует. Запуск из папки
+    <code>dsp/</code>: <kbd>./run.sh E7</kbd> (<kbd>./run.sh E7 --save</kbd> — сохранить картинку).
+    Данные в виджетах выше уже встроены — для самой работы код не нужен.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 2 · дальше: E8 — честная проверка (кросс-сессия / другой человек, переобучение)
+</p>
+
+</div>
+
+<script>
+  // встроенные данные (реальная confusion matrix + примеры); заполняет make_assets.py
+  var E7_DATA = /*DATA_START*/{"subject":"01","gestures":{"1":"покой","2":"кулак","3":"сгибание","4":"разгибание"},"labels":[1,2,3,4],"feat_names":["MAV","RMS","WL","ZC","SSC","MDF","MNF"],"clf_names":{"lda":"LDA","logreg":"Логистич. регрессия","svm":"Линейный SVM"},"n_train":142,"n_test":134,"clf":{"lda":{"cm":[[34,0,0,0],[1,29,1,1],[1,0,34,0],[1,1,1,30]],"acc":0.9478},"logreg":{"cm":[[34,0,0,0],[1,30,1,0],[0,0,35,0],[1,0,0,32]],"acc":0.9776},"svm":{"cm":[[34,0,0,0],[2,30,0,0],[0,0,35,0],[0,0,0,33]],"acc":0.9851}},"examples":[{"true":1,"pred":{"lda":1,"logreg":1,"svm":1},"f":[0.013,0.012,0.052,0.24,0.29,0.346,0.524]},{"true":2,"pred":{"lda":2,"logreg":2,"svm":2},"f":[0.442,0.514,0.705,0.562,0.29,0.256,0.314]},{"true":3,"pred":{"lda":3,"logreg":3,"svm":3},"f":[0.311,0.357,0.517,0.635,0.258,0.154,0.408]},{"true":4,"pred":{"lda":4,"logreg":4,"svm":4},"f":[0.271,0.339,0.638,0.594,0.484,0.256,0.364]},{"true":1,"pred":{"lda":1,"logreg":1,"svm":1},"f":[0.022,0.028,0.1,0.542,0.419,0.462,0.612]},{"true":2,"pred":{"lda":2,"logreg":2,"svm":2},"f":[0.184,0.214,0.287,0.396,0.306,0.436,0.494]},{"true":3,"pred":{"lda":3,"logreg":3,"svm":3},"f":[0.142,0.169,0.266,0.583,0.387,0.231,0.377]},{"true":4,"pred":{"lda":4,"logreg":4,"svm":4},"f":[0.191,0.217,0.391,0.781,0.387,0.179,0.365]}]}/*DATA_END*/;
+
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+  // смешать hex-цвет с фоном: t=0 → фон, t=1 → цвет (для тепловой заливки клеток)
+  function hex2rgb(h){ h=h.replace('#',''); if(h.length===3) h=h.split('').map(function(c){return c+c;}).join('');
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)]; }
+  function mix(cFg, cBg, t){ var a=hex2rgb(cFg), b=hex2rgb(cBg);
+    return 'rgb('+Math.round(b[0]+(a[0]-b[0])*t)+','+Math.round(b[1]+(a[1]-b[1])*t)+','+Math.round(b[2]+(a[2]-b[2])*t)+')'; }
+
+  var CLS = E7_DATA.labels;
+  var GN = E7_DATA.gestures;
+  var CLF = E7_DATA.clf_names;
+  function clsColor(c){ return css('--c'+(CLS.indexOf(c)+1)); }
+  function clsName(c){ return GN[String(c)] || GN[c] || ('кл.'+c); }
+
+  // ---------- Виджет 1: confusion matrix ----------
+  (function(){
+    var sel=document.getElementById('cm_clf'), plot=document.getElementById('cm_plot'),
+        out=document.getElementById('cm_out'), hint=document.getElementById('cm_hint');
+
+    function draw(){
+      var key=sel.value, d=E7_DATA.clf[key]; if(!d) return;
+      var cm=d.cm, N=CLS.length;
+      var ctx=plot.getContext('2d'), W=plot.width, H=plot.height; ctx.clearRect(0,0,W,H);
+      var ink=css('--ink'), muted=css('--muted'), line=css('--line'),
+          accent=css('--accent'), bg=css('--bg'), card=css('--card'), ok=css('--ok');
+      var padL=140, padT=64, padR=24, padB=40;
+      var gw=(W-padL-padR)/N, gh=(H-padT-padB)/N;
+      // максимум по строке — для нормировки цвета (иначе покой с большим числом «съест» контраст)
+      var rowMax=cm.map(function(r){ return Math.max.apply(null,r)||1; });
+
+      // заголовки
+      ctx.fillStyle=ink; ctx.font='bold 14px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('Предсказание →', padL+(W-padL-padR)/2, 22);
+      ctx.save(); ctx.translate(20, padT+(H-padT-padB)/2); ctx.rotate(-Math.PI/2);
+      ctx.fillText('Истинный класс →', 0, 0); ctx.restore();
+
+      // подписи столбцов
+      ctx.font='13px sans-serif'; ctx.fillStyle=muted;
+      for(var j=0;j<N;j++){ ctx.textAlign='center';
+        ctx.fillText(clsName(CLS[j]), padL+gw*(j+0.5), padT-10); }
+      // подписи строк
+      ctx.textAlign='right';
+      for(var i=0;i<N;i++){ ctx.fillText(clsName(CLS[i]), padL-12, padT+gh*(i+0.5)+5); }
+
+      // клетки
+      for(i=0;i<N;i++) for(j=0;j<N;j++){
+        var v=cm[i][j], t=Math.min(1, v/rowMax[i]);
+        var x=padL+gw*j, y=padT+gh*i;
+        var base=(i===j)? ok : accent;
+        ctx.fillStyle = v===0 ? card : mix(base, bg, 0.12+0.85*t);
+        ctx.fillRect(x+1,y+1,gw-2,gh-2);
+        // текст числа: белый на тёмной клетке
+        ctx.fillStyle = (v>0 && t>0.45) ? '#fff' : ink;
+        ctx.font='bold 15px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(String(v), x+gw/2, y+gh/2+5);
+      }
+      // обвести диагональ
+      ctx.strokeStyle=ok; ctx.lineWidth=2.5;
+      for(i=0;i<N;i++){ ctx.strokeRect(padL+gw*i+1.5, padT+gh*i+1.5, gw-3, gh-3); }
+      // сетка
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      for(i=0;i<=N;i++){ ctx.beginPath(); ctx.moveTo(padL,padT+gh*i); ctx.lineTo(padL+gw*N,padT+gh*i); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(padL+gw*i,padT); ctx.lineTo(padL+gw*i,padT+gh*N); ctx.stroke(); }
+
+      // разбор: точность + главная путаница
+      var total=0, correct=0, offMax=-1, oi=0, oj=0;
+      for(i=0;i<N;i++) for(j=0;j<N;j++){ total+=cm[i][j]; if(i===j) correct+=cm[i][j];
+        else if(cm[i][j]>offMax){ offMax=cm[i][j]; oi=i; oj=j; } }
+      var acc=d.acc;
+      out.className='readout ok';
+      var msg='<b>'+CLF[key]+'</b>: точность <span class="big">'+fmt(acc*100,1)+'%</span> ('+
+        correct+' из '+total+' окон теста верно). ';
+      if(offMax>0){ msg+='Сильнее всего путается: <b>'+clsName(CLS[oi])+' → '+clsName(CLS[oj])+
+        '</b> ('+offMax+' окон отнесены не туда).'; }
+      else { msg+='Ошибок вне диагонали нет.'; }
+      out.innerHTML=msg;
+      hint.textContent='окон обучения: '+E7_DATA.n_train+' · теста: '+E7_DATA.n_test;
+    }
+    sel.addEventListener('change', draw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+
+  // ---------- Виджет 2: степпер примеров ----------
+  (function(){
+    var prevb=document.getElementById('ex_prev'), nextb=document.getElementById('ex_next'),
+        idxl=document.getElementById('ex_idx'), plot=document.getElementById('ex_plot'),
+        leg=document.getElementById('ex_leg'), out=document.getElementById('ex_out');
+    var EX=E7_DATA.examples, names=E7_DATA.feat_names, cur=0;
+    leg.innerHTML='столбики — усреднённый по каналам вектор признаков этого окна';
+
+    function drawBars(f){
+      var ctx=plot.getContext('2d'), W=plot.width, H=plot.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), ink=css('--ink'), muted=css('--muted');
+      var baseY=H-26, maxH=H-52, n=names.length, bw=(W-70)/n-14, x0=52;
+      ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(24,baseY); ctx.lineTo(W-20,baseY); ctx.stroke();
+      for(var i=0;i<n;i++){
+        var v=Math.max(0,Math.min(1,f[i])), h=v*maxH, x=x0+i*(bw+14);
+        ctx.fillStyle=accent; ctx.fillRect(x, baseY-h, bw, h);
+        ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(names[i], x+bw/2, baseY+16);
+      }
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('нормировано в [0,1] по тесту', 26, 16);
+    }
+    function show(){
+      if(!EX||!EX.length){ out.className='readout bad'; out.textContent='нет примеров'; return; }
+      cur=(cur%EX.length+EX.length)%EX.length;
+      var e=EX[cur];
+      idxl.textContent='окно '+(cur+1)+' из '+EX.length;
+      drawBars(e.f);
+      var allok=true, parts=[];
+      ['lda','logreg','svm'].forEach(function(k){
+        var ok=e.pred[k]===e.true; if(!ok) allok=false;
+        parts.push('<b>'+CLF[k]+'</b>: '+clsName(e.pred[k])+' '+(ok?'✔':'✗')); });
+      out.className = allok ? 'readout ok' : 'readout bad';
+      out.innerHTML='Истинный жест: <span class="big">'+clsName(e.true)+'</span>. Предсказания — '+
+        parts.join(' · ')+'. '+(allok?'Все три верно ✔':'Есть ошибка ✗ (красная рамка).');
+    }
+    prevb.addEventListener('click', function(){ cur--; show(); });
+    nextb.addEventListener('click', function(){ cur++; show(); });
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); show(); };
+    show();
+  })();
+
+  // ---------- иллюстрации к блоку «почему» (игрушечные 2 класса) ----------
+  (function(){
+    var ang=document.getElementById('b_ang'), off=document.getElementById('b_off');
+    if(!ang||!off) return;
+    var angv=document.getElementById('b_angv'), offv=document.getElementById('b_offv'),
+        out=document.getElementById('b_out'),
+        cB=document.getElementById('b_plot'), cC=document.getElementById('c_plot');
+
+    // два детерминированных облака точек в координатах canvas-ядра [-1,1]
+    function lcg(seed){ var s=seed>>>0||1; return function(){ s=(1103515245*s+12345)&0x7fffffff; return s/0x7fffffff; }; }
+    function randn(rnd){ var u=1e-9+rnd(), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+    function makeClouds(){
+      var rnd=lcg(7), A=[], B=[], i;
+      for(i=0;i<26;i++){ A.push([-0.45+0.16*randn(rnd), -0.30+0.18*randn(rnd)]); }
+      for(i=0;i<26;i++){ B.push([ 0.45+0.16*randn(rnd),  0.30+0.18*randn(rnd)]); }
+      return {A:A,B:B};
+    }
+    var CL=makeClouds();
+
+    // граница: линия через центр canvas c наклоном angDeg и поперечным сдвигом offN([-1,1] по нормали)
+    // сторона точки = знак( n·p - offN ), где n — единичная нормаль
+    function sideOf(p, angDeg, offN){
+      var a=angDeg*Math.PI/180;         // направление линии
+      var nx=-Math.sin(a), ny=Math.cos(a);  // нормаль
+      return (p[0]*nx + p[1]*ny) - offN;
+    }
+    function countErr(angDeg, offN){
+      // класс А должен быть на отрицательной стороне, Б — на положительной (эталон)
+      var e=0, i;
+      for(i=0;i<CL.A.length;i++) if(sideOf(CL.A[i],angDeg,offN) > 0) e++;
+      for(i=0;i<CL.B.length;i++) if(sideOf(CL.B[i],angDeg,offN) < 0) e++;
+      return e;
+    }
+
+    function axes(cv){ // общая система координат ядра [-1,1] → пиксели
+      var W=cv.width, H=cv.height, pad=26;
+      return { W:W,H:H,pad:pad,
+        X:function(u){ return pad+(u+1)/2*(W-2*pad); },
+        Y:function(v){ return H-pad-(v+1)/2*(H-2*pad); } };
+    }
+    // нарисовать прямую заданного наклона/сдвига в пределах canvas
+    function drawLine(ctx, ax, angDeg, offN, color, dash, wdt){
+      var a=angDeg*Math.PI/180, nx=-Math.sin(a), ny=Math.cos(a);
+      // точка на линии: offN вдоль нормали
+      var px=nx*offN, py=ny*offN, dx=Math.cos(a), dy=Math.sin(a), R=3;
+      ctx.strokeStyle=color; ctx.lineWidth=wdt||2; if(dash) ctx.setLineDash(dash);
+      ctx.beginPath();
+      ctx.moveTo(ax.X(px-dx*R), ax.Y(py-dy*R));
+      ctx.lineTo(ax.X(px+dx*R), ax.Y(py+dy*R));
+      ctx.stroke(); ctx.setLineDash([]);
+    }
+    function drawCloud(ctx, ax, pts, color, angDeg, offN, wantPos){
+      var warn=css('--warn');
+      pts.forEach(function(p){
+        var s=sideOf(p,angDeg,offN), wrong = wantPos ? (s<0) : (s>0);
+        ctx.fillStyle = wrong ? warn : color; ctx.globalAlpha=0.9;
+        ctx.beginPath(); ctx.arc(ax.X(p[0]),ax.Y(p[1]),5,0,2*Math.PI); ctx.fill();
+      });
+      ctx.globalAlpha=1;
+    }
+
+    // --- картинка B: интерактивная граница со счётчиком ошибок ---
+    function drawB(){
+      var angD=+ang.value, offN=(+off.value)/100;
+      var ctx=cB.getContext('2d'), ax=axes(cB); ctx.clearRect(0,0,ax.W,ax.H);
+      var line=css('--line'), ink=css('--ink');
+      // рамка/оси
+      ctx.strokeStyle=line; ctx.lineWidth=1; ctx.strokeRect(ax.pad,ax.pad,ax.W-2*ax.pad,ax.H-2*ax.pad);
+      drawLine(ctx, ax, angD, offN, ink, null, 2.4);
+      drawCloud(ctx, ax, CL.A, clsColor(CLS[0]), angD, offN, false); // А на отрицательной
+      drawCloud(ctx, ax, CL.B, clsColor(CLS[1]), angD, offN, true);  // Б на положительной
+      var e=countErr(angD,offN), tot=CL.A.length+CL.B.length;
+      out.className = e<=2 ? 'readout ok' : 'readout bad';
+      out.innerHTML='Наклон '+angD+'°, сдвиг '+fmt(offN,2)+' → ошибок: <span class="big">'+e+
+        '</span> из '+tot+' (точность '+fmt((tot-e)/tot*100,0)+'%). '+
+        (e<=2?'Почти идеально — вот такое положение и ищет обучение.':'Крути ползунки: ищи минимум ошибок.');
+    }
+    // --- картинка C: LDA-идея vs SVM-идея (статично) ---
+    function drawC(){
+      var ctx=cC.getContext('2d'), ax=axes(cC); ctx.clearRect(0,0,ax.W,ax.H);
+      var line=css('--line'), ok=css('--ok'), warn=css('--warn');
+      ctx.strokeStyle=line; ctx.lineWidth=1; ctx.strokeRect(ax.pad,ax.pad,ax.W-2*ax.pad,ax.H-2*ax.pad);
+      // центры облаков
+      function cent(pts){ var mx=0,my=0; pts.forEach(function(p){mx+=p[0];my+=p[1];}); return [mx/pts.length,my/pts.length]; }
+      var cA=cent(CL.A), cB=cent(CL.B);
+      // «оптимальный» разделитель между облаками: перпендикуляр к линии центров, посередине
+      var mid=[(cA[0]+cB[0])/2,(cA[1]+cB[1])/2];
+      var dirAng=Math.atan2(cB[1]-cA[1], cB[0]-cA[0]);      // направление между центрами
+      var lineAng=(dirAng+Math.PI/2)*180/Math.PI;            // граница ⟂ ему
+      var nx=Math.cos(dirAng), ny=Math.sin(dirAng);
+      var offMid=mid[0]*nx+mid[1]*ny;                         // проекция середины на нормаль
+      // зазор SVM: полоса шириной ~ до ближайших точек
+      function minProj(pts){ var m=1e9; pts.forEach(function(p){ var q=Math.abs(p[0]*nx+p[1]*ny-offMid); if(q<m)m=q; }); return m; }
+      var half=Math.min(minProj(CL.A), minProj(CL.B));
+      // полоса зазора
+      var a=lineAng*Math.PI/180, dx=Math.cos(a), dy=Math.sin(a), R=3;
+      function pt(u,shift){ var ox=nx*(offMid+shift), oy=ny*(offMid+shift); return [ax.X(ox+dx*u), ax.Y(oy+dy*u)]; }
+      ctx.fillStyle=warn; ctx.globalAlpha=0.12;
+      var p1=pt(-R,half), p2=pt(R,half), p3=pt(R,-half), p4=pt(-R,-half);
+      ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.lineTo(p3[0],p3[1]); ctx.lineTo(p4[0],p4[1]); ctx.closePath(); ctx.fill();
+      ctx.globalAlpha=1;
+      // облака (без ошибок — обе идеи разделяют верно)
+      drawCloud(ctx, ax, CL.A, clsColor(CLS[0]), lineAng, offMid, false);
+      drawCloud(ctx, ax, CL.B, clsColor(CLS[1]), lineAng, offMid, true);
+      // границы: зелёная (посередине, LDA), оранжевая (тоже посередине, но с полосой зазора — SVM)
+      drawLine(ctx, ax, lineAng, offMid, ok, [6,4], 2.6);
+      drawLine(ctx, ax, lineAng, offMid, warn, null, 1.8);
+      // центры
+      [[cA,clsColor(CLS[0])],[cB,clsColor(CLS[1])]].forEach(function(cc){
+        ctx.fillStyle=cc[1]; ctx.beginPath(); ctx.arc(ax.X(cc[0][0]),ax.Y(cc[0][1]),8,0,2*Math.PI); ctx.fill();
+        ctx.strokeStyle=css('--ink'); ctx.lineWidth=2; ctx.stroke();
+      });
+    }
+
+    function redraw(){ angv.textContent=(+ang.value)+'°'; offv.textContent=fmt((+off.value)/100,2); drawB(); drawC(); }
+    ang.addEventListener('input', redraw);
+    off.addEventListener('input', redraw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); redraw(); };
+    redraw();
+  })();
+</script>
+
+</body>
+</html>

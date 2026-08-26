@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E11 — Управление последовательностями (state machine)</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+    --c1:#2d6cdf; --c2:#d9822b; --c3:#0f9d58; --c4:#a24bd6; --c5:#e0457b;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+    --c1:#6ea0ff; --c2:#e0a45f; --c3:#4cc98a; --c4:#c07ff0; --c5:#f07aa6;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 168px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 82px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .btn{cursor:pointer; background:var(--accent); color:#fff; border:none; border-radius:9px;
+    padding:10px 18px; font-size:15px; font-weight:600; box-shadow:var(--shadow); transition:transform .08s;}
+  .btn:hover{filter:brightness(1.06);}
+  .btn:active{transform:translateY(1px);}
+  .btn.sec{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+  .btn.mb{background:var(--c4);}
+  .btnrow{display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin:10px 0 4px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700; font-size:17px;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E11</span>
+  <h1>Управление последовательностями — из немногих мышц много команд</h1>
+  <p>Серия «синус → протез» · часть 2 · одна тема: паттерны сокращений во времени → команды (конечный автомат)</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> мышц (каналов) у нас <b>мало</b> — часто одна-две, — а команд протезу
+    нужно <b>много</b>: сжать, разжать, повернуть кисть, сменить хват, «пауза». Как из пары входов
+    получить пяток команд? Ответ тот же, что у <b>двойного щелчка мышкой</b>: смысл несёт не одно
+    нажатие, а <b>паттерн во времени</b>. Два коротких сокращения подряд — одна команда, три — другая,
+    долгое удержание — третья, а если напрячь <b>две мышцы сразу</b>
+    (<span class="term" data-tip="Co-contraction: одновременное напряжение мышцы и её антагониста (например сгибателя и разгибателя). В обычной жизни так почти не делают, поэтому это удобный отдельный «третий вход» — переключатель режима.">co-contraction</span>) —
+    это ещё один, «третий» вход.
+  </p>
+  <p style="margin-bottom:0">
+    Управляет этим <span class="term" data-tip="Конечный автомат (state machine): набор состояний и правила переходов между ними. В каждый момент система в одном состоянии; событие переводит её в другое по фиксированному правилу.">конечный автомат</span>
+    поверх онлайн-детектора из <b>E10</b>. Цель работы — <b>не запустить код</b>, а понять три
+    вещи: как из отдельных
+    <span class="term" data-tip="Onset: момент НАЧАЛА сокращения — огибающая RMS перешла порог покоя (из E10). Каждое сокращение = один onset + один спад (offset).">onset</span>-событий
+    собирают «тапы» и «удержания»; зачем нужен
+    <span class="term" data-tip="Таймаут объединения: максимальная пауза между двумя сокращениями, при которой они считаются частью одной серии (двойной/тройной тап). Пауза длиннее — серия завершена.">таймаут</span>
+    между тапами (иначе одно длинное сокращение примут за пачку коротких); и почему пара входов ×
+    длина паттерна = <b>много различимых команд</b>.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0"><b>1. Событие сокращения.</b> Из огибающей силы (E4/E10) детектор выдаёт два
+  события: <span class="term" data-tip="Onset: огибающая поднялась выше порога — мышца начала работать.">onset</span>
+  (начало) и <span class="term" data-tip="Offset: огибающая опустилась ниже порога — мышца расслабилась, сокращение закончилось.">offset</span>
+  (конец). Длительность одного сокращения $d = t_{\text{off}} - t_{\text{on}}$ решает, «тап» это или «удержание»:</p>
+  \[ \text{сокращение} \;=\;
+     \begin{cases}
+       \textbf{тап}, & d < T_{\text{удерж}} \quad(\text{короткое});\\[2pt]
+       \textbf{удержание}, & d \ge T_{\text{удерж}} \quad(\text{длинное}).
+     \end{cases} \]
+  <p style="margin:2px 0"><b>2. Серия тапов.</b> Несколько тапов подряд объединяются в серию, пока пауза
+  между ними меньше <span class="term" data-tip="Таймаут объединения T_gap: если следующий тап пришёл раньше, чем через T_gap после предыдущего, он в той же серии. Позже — серия закрыта, её и засчитываем.">таймаута $T_{\text{gap}}$</span>.
+  Пауза длиннее $T_{\text{gap}}$ — серия закрыта, число тапов в ней = команда (1 тап / 2 тапа / 3 тапа).</p>
+  <p style="margin:2px 0"><b>3. Co-contraction.</b> Если в одно окно активны <b>оба</b> канала (A и B) и их
+  сила выше <span class="term" data-tip="Порог co-contraction: минимальная сила КАЖДОГО из двух каналов, чтобы засчитать одновременное напряжение (а не просто перекрытие хвостов).">порога co-contraction</span> —
+  это отдельное событие «оба вместе» (переключатель режима).</p>
+  <p style="margin-bottom:0"><b>4. Конечный автомат.</b> Состояния + правила переходов. События (тап /
+  серия / удержание / co-contraction) двигают автомат из состояния в состояние — так пара входов даёт
+  много команд.</p>
+  <div class="note" style="margin-bottom:0"><b>Комбинаторика.</b> С $K$ различимыми событиями и паттерном
+  длины до $L$ число различных последовательностей растёт как $K + K^2 + \dots + K^L$ — из 3 событий и
+  длины 2 уже <b>12</b> команд. Именно поэтому «мало входов» — не приговор.</div>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 · набери команду ============ -->
+<div class="lab">
+  <h3>Виджет 1 · Набери команду сокращениями</h3>
+  <p style="margin-top:2px">Ты — мышцы. <b>Кликни и отпусти</b> кнопку «мышца A» — это одно сокращение
+  (короткий клик = <b>тап</b>, зажать = <b>удержание</b>). Два-три тапа подряд быстро = двойной/тройной
+  тап. Нажми <b>A и B вместе</b> — это co-contraction. На ленте бежит активность каналов во времени;
+  автомат складывает onset-события в тапы/удержания/co-contraction и печатает <b>распознанную команду</b>.</p>
+
+  <div class="btnrow">
+    <button class="btn" id="w1_A">💪 мышца A</button>
+    <button class="btn mb" id="w1_B">💪 мышца B</button>
+    <button class="btn sec" id="w1_both">A + B вместе (co‑contraction)</button>
+    <button class="btn sec" id="w1_reset">⟲ Сброс ленты</button>
+  </div>
+  <p class="muted" style="margin:2px 0 8px">Совет: клик = тап, зажать ≥ порога удержания = удержание.
+  Кнопка «A + B вместе» имитирует одновременное напряжение обоих каналов.</p>
+
+  <canvas id="w1_scope" class="scope" width="860" height="240"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="background:var(--c1)"></span>канал A</span>
+    <span><span class="sw" style="background:var(--c4)"></span>канал B</span>
+    <span><span class="sw" style="background:var(--c3)"></span>co‑contraction (оба)</span>
+    <span>↕ высота = сила; ширина = длительность сокращения</span>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Таймаут объединения T_gap: макс. пауза между тапами, при которой они в одной серии. Больше — легче собрать тройной тап, но серия дольше закрывается (выше задержка команды).">Таймаут серии $T_{\text{gap}}$</span></label><input type="range" id="w1_gap" min="150" max="900" step="50" value="450"><span class="val" id="w1_gapv">450 мс</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Порог удержания T_удерж: если одно сокращение длится дольше — это «удержание» (захват), короче — «тап».">Порог удержания $T_{\text{удерж}}$</span></label><input type="range" id="w1_hold" min="300" max="1200" step="50" value="600"><span class="val" id="w1_holdv">600 мс</span></div>
+    <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Порог co-contraction: насколько должны перекрыться во времени активности A и B, чтобы засчитать одновременное напряжение (доля перекрытия по длительности).">Порог co‑contraction</span></label><input type="range" id="w1_cc" min="0.1" max="0.9" step="0.05" value="0.4"><span class="val" id="w1_ccv">0,40</span></div>
+  </div>
+
+  <div class="readout ok" id="w1_out">Пока тихо. Кликни «мышца A» пару раз подряд — соберётся двойной тап.</div>
+  <div class="tasklist">
+    <b>Задания (жми кнопки, крути ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Сделай <b>2 быстрых тапа</b> по A. Дождись, пока серия закроется (пауза &gt; $T_{\text{gap}}$).
+          Какая команда напечаталась? Теперь 3 тапа — а теперь?</li>
+      <li><b>Зажми</b> A дольше порога удержания. Команда сменилась на «захват»? Уменьши порог удержания —
+          тот же зажим теперь тап или удержание?</li>
+      <li>Сделай 2 тапа, но <b>с большой паузой</b> между ними (больше $T_{\text{gap}}$). Автомат увидит
+          <b>две команды по одному тапу</b>, а не один двойной. Вот зачем нужен таймаут.</li>
+      <li>Нажми <b>A + B вместе</b>. Появилось событие co‑contraction и команда «смена режима»?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 · диаграмма автомата ============ -->
+<div class="lab">
+  <h3>Виджет 2 · Диаграмма автомата: почему мало входов = много команд</h3>
+  <p style="margin-top:2px">Кружки — <b>состояния</b>, стрелки — <b>переходы</b> (подписаны событием, которое
+  их вызывает). Текущее состояние подсвечено. Жми события — автомат переходит, активная стрелка вспыхивает.
+  Один и тот же вход («тап») в <b>разных состояниях</b> делает <b>разное</b> — вот откуда берётся много
+  команд из малого числа входов.</p>
+
+  <canvas id="w2_scope" class="scope" width="860" height="360"></canvas>
+
+  <div class="btnrow">
+    <button class="btn" id="w2_tap">тап</button>
+    <button class="btn" id="w2_hold">удержание</button>
+    <button class="btn mb" id="w2_cc">co‑contraction</button>
+    <button class="btn sec" id="w2_reset">⟲ В покой</button>
+  </div>
+  <div class="readout ok" id="w2_out"></div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Из «Покой» нажми <b>co‑contraction</b>. В какое состояние попал автомат? Это «режим 2».</li>
+      <li>Теперь нажми <b>тап</b>. Тот же «тап», что в покое давал захват, здесь делает <b>другое</b> —
+          посмотри, какую команду выдала стрелка. Один вход, разный смысл — вот суть.</li>
+      <li>Посчитай стрелки: сколько всего <b>команд</b> получилось из <b>трёх</b> событий (тап / удержание /
+          co‑contraction)? Сравни с числом входов.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему из onset-событий собираются команды — и зачем таймаут<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Никакой магии: детектор из E10 выдаёт поток <b>onset</b>-вспышек (начало
+    сокращения). Сами по себе они одинаковы — «мышца дёрнулась». Смысл появляется, когда мы смотрим на
+    их <b>рисунок во времени</b>: сколько подряд, как близко, как долго держали. Ровно как клавиатура
+    различает одиночный и двойной клик по <b>паузе</b> между ними. Двигай ползунок <b>таймаута</b> ниже —
+    и картинка покажет, как один и тот же поток вспышек разбивается то на 1, то на 2, то на 3 тапа.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Таймаут T_gap в иллюстрации ниже: паузу короче него считаем «внутри серии», длиннее — «конец серии».">Таймаут $T_{\text{gap}}$</span></label><input type="range" id="d_gap" min="100" max="800" step="20" value="350"><span class="val" id="d_gapv">350 мс</span></div>
+      </div>
+      <div class="readout ok" id="d_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Шаг 1. Из огибающей — onset и длительность</h3>
+    <p style="margin-top:2px">Огибающая RMS (медленная кривая силы, из E4) переходит порог покоя вверх —
+    это <b>onset</b>; опускается ниже — <b>offset</b>. Между ними — одно сокращение длительностью
+    $d=t_{\text{off}}-t_{\text{on}}$. Короткое (меньше порога удержания) — <b>тап</b>; длинное —
+    <b>удержание</b>. Всё, что дальше, работает уже не с сырым сигналом, а с этими короткими метками
+    «тап в момент $t$» / «удержание».</p>
+
+    <h3>Шаг 2. Таймаут группирует вспышки в серию</h3>
+    <p style="margin-top:2px">Вот <b>ключевая хитрость</b>. Идут onset-вспышки одна за другой. Правило
+    простое: если следующая пришла <b>раньше</b>, чем через $T_{\text{gap}}$ — она в той же серии
+    (счётчик тапов +1). Если <b>позже</b> — серия закрыта, число тапов в ней и есть команда, счётчик
+    обнуляется. Двигай таймаут выше — и разрозненные вспышки начнут «слипаться» в двойные и тройные тапы;
+    двигай вниз — распадутся обратно на одиночные. Именно из-за этого таймаут нельзя ставить слишком
+    маленьким (тройной тап не соберётся) или слишком большим (два разных намерения слипнутся в одно).</p>
+    <canvas id="d_ticks" class="scope" width="860" height="180"></canvas>
+    <div class="legend" style="margin-bottom:12px">
+      <span><span class="sw" style="background:var(--c1)"></span>onset-вспышки (моменты начала сокращений)</span>
+      <span><span class="sw" style="background:var(--c3)"></span>серия (паузы внутри &lt; $T_{\text{gap}}$)</span>
+      <span>подпись под серией — распознанное число тапов</span>
+    </div>
+
+    <h3>Почему одно длинное сокращение — не «много тапов»</h3>
+    <p style="margin-top:2px">Если убрать разделение тап/удержание, то долгое напряжение мышцы детектор
+    покадрово увидел бы как «активно, активно, активно…» и мог бы посчитать это за кучу срабатываний.
+    Поэтому <b>сначала</b> сворачиваем непрерывную активность в <b>одно</b> событие (onset…offset), и
+    только потом считаем события. Длительность этого одного события отделяет «тап» от «удержания» —
+    порогом $T_{\text{удерж}}$.</p>
+
+    <h3>Co-contraction — честный «третий вход»</h3>
+    <p style="margin-top:2px">Одновременно напрячь мышцу и её <b>антагонист</b> (сгибатель + разгибатель)
+    в обычном движении почти не бывает — поэтому это надёжный, редко-случайный сигнал. Детектор
+    проверяет: активны ли <b>оба</b> канала в перекрывающихся окнах и достаточно ли велико перекрытие
+    (доля общего времени активности $\ge$ порога). Если да — событие «co‑contraction», которым удобно
+    <b>переключать режим</b> (как Shift на клавиатуре меняет смысл остальных клавиш).</p>
+
+    <h3>Конечный автомат: состояния × события</h3>
+    <p style="margin-top:2px">Автомат — это таблица «(состояние, событие) → новое состояние + команда».
+    Один и тот же «тап» из состояния <i>Покой</i> и из состояния <i>Режим 2</i> ведёт в разные места и
+    даёт разные команды. Поэтому <b>число команд не ограничено числом входов</b> — оно определяется
+    числом клеток таблицы.</p>
+
+    <h3>Комбинаторика: откуда «много»</h3>
+    <p style="margin-top:2px">Пусть различимых событий $K$ (например тап, удержание, co‑contraction →
+    $K=3$), а паттерн — последовательность длины до $L$. Число различных паттернов:</p>
+    \[ N_{\text{команд}} \;=\; K + K^2 + \dots + K^L \;=\; \sum_{\ell=1}^{L} K^\ell. \]
+    <p style="margin-top:2px">Растёт <b>степенно</b>. При $K=3$: длина 1 → 3 команды, до длины 2 → $3+9=12$,
+    до длины 3 → $3+9+27=39$. На практике берут короткие паттерны (длинные утомляют и путаются), но даже
+    длины 1–2 хватает на весь набор команд протеза.</p>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Порядок работы декодера последовательностей (5 шагов):</b></p>
+    <ol style="margin-top:2px">
+      <li>детектор (E10) выдаёт onset/offset по каждому каналу → длительность $d$ каждого сокращения;</li>
+      <li>оба канала активны и перекрылись $\ge$ порога? → событие <b>co‑contraction</b>, иначе дальше;</li>
+      <li>$d \ge T_{\text{удерж}}$ → событие <b>удержание</b>; иначе — <b>тап</b>;</li>
+      <li>тап пришёл в пределах $T_{\text{gap}}$ от прошлого? → счётчик серии +1; пауза больше → серия закрыта;</li>
+      <li>по (состояние, событие/серия) автомат переходит и выдаёт команду.</li>
+    </ol>
+
+    <div class="formula-ex">
+      <b>Пример A (двойной тап).</b> $T_{\text{gap}}=450$ мс, $T_{\text{удерж}}=600$ мс.<br>
+      Тапы длительностью 120 мс в моменты $t=0$ и $t=300$ мс. Пауза 300 мс $< 450$ → <b>та же серия</b>,
+      счётчик = 2. Дальше пауза &gt; 450 мс → серия закрыта: <b>команда «2 тапа»</b>.
+    </div>
+    <div class="formula-ex">
+      <b>Пример B (то же, но большой промежуток).</b> Те же два тапа, но второй в $t=700$ мс.
+      Пауза 700 мс $> T_{\text{gap}}=450$ → серия закрылась после первого: <b>две команды «1 тап»</b>, а не
+      один двойной. Хочешь двойной — либо тапай быстрее, либо подними $T_{\text{gap}}$.
+    </div>
+    <div class="formula-ex">
+      <b>Пример C (удержание).</b> Одно сокращение длительностью $d=800$ мс. $800 \ge T_{\text{удерж}}=600$
+      → это <b>удержание</b> (команда «захват»), а не 1 тап — хотя onset был один и тот же.
+    </div>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Часть А проверяется в <b>Виджете 1</b> (набор команды сокращениями) и разборе
+  выше. Часть Б — проектная: <b>Виджет 2</b> (диаграмма автомата) как опора. Записывай числа и объяснения.</p>
+
+  <h3 style="margin-top:6px">Часть А · задай паттерн и найди, где он ломается</h3>
+  <p style="margin-top:2px">Выставь в Виджете 1 указанные пороги, <b>набери заданный паттерн</b> сокращениями
+  и <b>запиши в отчёт</b>: (а) какую команду распознал автомат; (б) начни уменьшать <b>таймаут $T_{\text{gap}}$</b> —
+  при каком его значении паттерн <b>ломается</b> (двойной/тройной тап распадается на одиночные); (в) объясни,
+  почему именно там (сравни паузу между тапами с $T_{\text{gap}}$).</p>
+  <table>
+    <tr><th>Вариант</th><th>Паттерн для набора</th><th>$T_{\text{gap}}$ / $T_{\text{удерж}}$ старт</th></tr>
+    <tr><td>1</td><td>2 тапа подряд</td><td>450 / 600 мс</td></tr>
+    <tr><td>2</td><td>3 тапа подряд</td><td>500 / 700 мс</td></tr>
+    <tr><td>3</td><td>2 тапа + удержание</td><td>400 / 550 мс</td></tr>
+    <tr><td>4</td><td>удержание, потом 2 тапа</td><td>550 / 500 мс</td></tr>
+    <tr><td>5</td><td>co‑contraction, потом 1 тап</td><td>450 / 650 мс</td></tr>
+  </table>
+
+  <h3>Часть Б · спроектируй назначение 4 команд</h3>
+  <p style="margin-top:2px">Тебе нужно управлять клешнёй с <b>4 командами</b>: <i>закрыть</i>, <i>открыть</i>,
+  <i>повернуть кисть</i>, <i>стоп/пауза</i>. Пользуясь событиями <b>тап / двойной тап / удержание /
+  co‑contraction</b>, <b>назначь каждой команде свой паттерн</b> и <b>обоснуй</b>: (а) какие паттерны самые
+  <b>частые/срочные</b> — им дай самые быстрые и надёжные (короткие) события; (б) какие два паттерна легче
+  всего <b>спутать</b> и почему; (в) как co‑contraction помогает избежать путаницы (например как переключатель
+  режима). Проверь свою схему по диаграмме в Виджете 2 — не ведут ли два разных паттерна из одного состояния
+  в одно и то же.</p>
+  <table>
+    <tr><th>Вариант</th><th>Что оптимизировать (акцент обоснования)</th></tr>
+    <tr><td>1</td><td>минимум задержки для «закрыть» (самая частая команда — схватить предмет)</td></tr>
+    <tr><td>2</td><td>минимум ложных срабатываний «стоп/пауза» (случайный шум не должен её вызывать)</td></tr>
+    <tr><td>3</td><td>два режима через co‑contraction: «хват» и «поворот» на одних и тех же тапах</td></tr>
+    <tr><td>4</td><td>усталость: реже всего просить <b>удержание</b> (оно утомляет мышцу)</td></tr>
+    <tr><td>5</td><td>новичок: самые простые паттерны (1 тап) на самые нужные команды</td></tr>
+  </table>
+  <div class="note" style="margin-bottom:0"><b>Связка «правило ↔ картинка».</b> В части А сначала <b>посчитай</b>
+  ожидаемое: серия из $n$ тапов соберётся, только если каждая пауза $< T_{\text{gap}}$; потом <b>проверь в виджете</b>, что при уменьшении $T_{\text{gap}}$ ниже твоей паузы команда действительно распадается.</div>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Мало входов — не приговор: смысл несёт <b>паттерн во времени</b> (сколько тапов, как долго,
+        оба ли канала), а не одно сокращение.</li>
+    <li><b>Onset-событие → тап или удержание</b> по длительности; серия тапов собирается таймаутом
+        $T_{\text{gap}}$; <b>co‑contraction</b> — отдельный «третий вход» (переключатель режима).</li>
+    <li><b>Таймаут обязателен:</b> без него одно длинное сокращение примут за пачку, а два разных намерения
+        слипнутся в одно. Слишком мал — серия не собирается; слишком велик — растёт задержка и путаница.</li>
+    <li><b>Конечный автомат</b> = состояния + правила переходов; один вход в разных состояниях даёт разные
+        команды → команд может быть много ($\sum K^\ell$).</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик.</b> onset и стабилизация решения — из <b>E10</b>;
+  огибающая RMS (сила сокращения) — из <b>E4</b>. Здесь мы надстроили над ними логику <b>времени и
+  состояний</b>. Дальше в <b>E12</b> — экранная клешня в Pygame, которой эти команды и управляют.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Почему число команд протеза не обязано равняться числу мышечных каналов?</li>
+      <li>Как из огибающей RMS получают событие сокращения (onset/offset)? Чем тап отличается от удержания?</li>
+      <li>Что такое таймаут объединения $T_{\text{gap}}$ и зачем он нужен? Что будет, если сделать его слишком маленьким? Слишком большим?</li>
+      <li>Почему одно длинное сокращение нельзя считать как «много тапов»? Как этого избегают?</li>
+      <li>Что такое co‑contraction и почему он удобен как отдельный вход/переключатель режима?</li>
+      <li>Что такое конечный автомат (состояния + переходы)? Как он даёт «много команд из малого числа входов»?</li>
+      <li>Оцени число команд для $K=3$ событий и паттернов длины до 2. Приведи формулу.</li>
+      <li>Чем платят за длинные паттерны и за большой таймаут (задержка, усталость, путаница)?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный <code>solution.py</code> генерит синтетический поток onset‑событий
+    (тапы/удержания/co‑contraction на двух каналах), реализует <b>тот же конечный автомат</b>
+    (тап/удержание/co‑contraction → команда, с таймаутом серии), прогоняет его на тестовой
+    последовательности и печатает распознанные команды с таймингами. Флаг <code>--save</code> рисует
+    ленту активности каналов и распознанные команды в <code>Materials/task1.png</code>. Запуск из папки
+    <code>dsp/</code>: <kbd>./run.sh E11</kbd> (или <kbd>./run.sh E11 --save</kbd>). Для самой работы код
+    не нужен — всё важное уже в виджетах выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 2 · дальше: E12 — экранный манипулятор (Pygame) от датасет‑потока (клешня: бинарно + пропорционально)
+</p>
+
+</div>
+
+<script>
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+
+  // ========== ВИДЖЕТ 1: набери команду сокращениями ==========
+  (function(){
+    var scope=document.getElementById('w1_scope'); if(!scope) return;
+    var bA=document.getElementById('w1_A'), bB=document.getElementById('w1_B'),
+        bBoth=document.getElementById('w1_both'), bReset=document.getElementById('w1_reset'),
+        gapEl=document.getElementById('w1_gap'), holdEl=document.getElementById('w1_hold'), ccEl=document.getElementById('w1_cc'),
+        gapV=document.getElementById('w1_gapv'), holdV=document.getElementById('w1_holdv'), ccV=document.getElementById('w1_ccv'),
+        out=document.getElementById('w1_out');
+
+    // временнáя ось ленты: окно WINDOW мс, «сейчас» справа. Время в мс от старта.
+    var WINDOW = 6000;            // видимая ширина ленты, мс
+    var t0 = performance.now();
+    function now(){ return performance.now() - t0; }
+
+    // события-сокращения на ленте: {ch:'A'|'B'|'CC', t0, t1(или null пока держим)}
+    var segs = [];
+    var pressing = { A:null, B:null };   // индекс активного сегмента при удержании кнопки
+
+    // серия тапов (для авто-закрытия): последний тап-время и счётчик
+    var series = { count:0, lastEnd:-1e9, ch:null };
+    var commands = [];            // распознанные команды {t, text, kind}
+    var lastCmdText = '';
+
+    function P(){ return { gap:+gapEl.value, hold:+holdEl.value, cc:+ccEl.value }; }
+
+    // --- регистрация сокращения (после отпускания) ---
+    function classifyContraction(seg){
+      var p=P(), d = seg.t1 - seg.t0;
+      if(seg.ch==='CC'){ return {kind:'cc'}; }
+      if(d >= p.hold){ return {kind:'hold', d:d}; }
+      return {kind:'tap', d:d};
+    }
+
+    function pushCommand(text, kind){
+      commands.push({ t:now(), text:text, kind:kind });
+      lastCmdText = text;
+    }
+
+    // закрыть текущую серию тапов, если пауза вышла за таймаут
+    function maybeCloseSeries(){
+      var p=P();
+      if(series.count>0 && (now() - series.lastEnd) > p.gap){
+        var n=series.count;
+        var name = n===1?'1 тап → «команда 1»' : n===2?'2 тапа → «команда 2»' : n===3?'3 тапа → «команда 3»' : (n+' тапов → «команда '+n+'»');
+        pushCommand(name, 'tap'+n);
+        series.count=0; series.ch=null;
+      }
+    }
+
+    function onContractionDone(seg){
+      var c = classifyContraction(seg);
+      if(c.kind==='cc'){
+        // co-contraction закрывает и любую открытую серию как отдельное событие
+        if(series.count>0){ var n=series.count;
+          pushCommand((n===1?'1 тап':n+' тапа')+' → «команда '+n+'»','tap'+n); series.count=0; }
+        pushCommand('co‑contraction → «смена режима»','cc');
+      } else if(c.kind==='hold'){
+        if(series.count>0){ var m=series.count;
+          pushCommand((m===1?'1 тап':m+' тапа')+' → «команда '+m+'»','tap'+m); series.count=0; }
+        pushCommand('удержание → «захват»','hold');
+      } else {
+        // тап: добавляем в серию (если укладываемся в таймаут от прошлого) либо начинаем новую
+        var p=P();
+        if(series.count>0 && (seg.t0 - series.lastEnd) <= p.gap){ series.count++; }
+        else { series.count=1; }
+        series.ch=seg.ch; series.lastEnd=seg.t1;
+      }
+    }
+
+    // --- нажатия кнопок ---
+    function startPress(ch){
+      if(pressing[ch]!=null) return;
+      var seg={ ch:ch, t0:now(), t1:null };
+      segs.push(seg); pressing[ch]=seg;
+    }
+    function endPress(ch){
+      var seg=pressing[ch]; if(!seg) return;
+      seg.t1=now(); pressing[ch]=null;
+      onContractionDone(seg);
+    }
+    // A + B вместе (co-contraction) как единичное событие фиксированной длительности
+    function pulseBoth(){
+      var t=now(), D=350;
+      segs.push({ ch:'CC', t0:t, t1:t+D });
+      onContractionDone({ ch:'CC', t0:t, t1:t+D });
+    }
+
+    // мышь и тач для «удержания» A/B
+    function bind(btn, ch){
+      btn.addEventListener('mousedown', function(e){ e.preventDefault(); startPress(ch); });
+      btn.addEventListener('mouseup',   function(e){ e.preventDefault(); endPress(ch); });
+      btn.addEventListener('mouseleave',function(){ if(pressing[ch]) endPress(ch); });
+      btn.addEventListener('touchstart',function(e){ e.preventDefault(); startPress(ch); }, {passive:false});
+      btn.addEventListener('touchend',  function(e){ e.preventDefault(); endPress(ch); }, {passive:false});
+    }
+    bind(bA,'A'); bind(bB,'B');
+    bBoth.addEventListener('click', function(){ pulseBoth(); });
+    bReset.addEventListener('click', function(){
+      segs=[]; commands=[]; series={count:0,lastEnd:-1e9,ch:null}; pressing={A:null,B:null};
+      lastCmdText=''; t0=performance.now();
+      out.className='readout ok'; out.innerHTML='Лента очищена. Кликни «мышца A» пару раз подряд — соберётся двойной тап.';
+    });
+
+    function chColor(ch){ return ch==='A'?css('--c1') : ch==='B'?css('--c4') : css('--c3'); }
+
+    function draw(){
+      gapV.textContent=(+gapEl.value)+' мс'; holdV.textContent=(+holdEl.value)+' мс'; ccV.textContent=fmt(+ccEl.value,2);
+      maybeCloseSeries();
+
+      var ctx=scope.getContext('2d'), W=scope.width, H=scope.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink');
+      var padL=48, padR=14, padT=12, padB=26;
+      var tNow=now(), tLeft=tNow-WINDOW;
+      function X(t){ return padL + ((t - tLeft)/WINDOW)*(W-padL-padR); }
+
+      // две дорожки: A (верх), B (низ)
+      var laneH=70, gapY=18;
+      var aTop=padT+8, aBot=aTop+laneH;
+      var bTop=aBot+gapY, bBot=bTop+laneH;
+
+      // рамки дорожек и подписи
+      ctx.strokeStyle=line; ctx.lineWidth=1;
+      ctx.strokeRect(padL, aTop, W-padL-padR, laneH);
+      ctx.strokeRect(padL, bTop, W-padL-padR, laneH);
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='right';
+      ctx.fillText('канал A', padL-6, aTop+laneH/2+4);
+      ctx.fillText('канал B', padL-6, bTop+laneH/2+4);
+
+      // сегменты активности
+      function drawSeg(seg){
+        var e = seg.t1==null ? tNow : seg.t1;
+        if(e < tLeft) return;
+        var x0=Math.max(padL, X(seg.t0)), x1=X(e);
+        if(seg.ch==='CC'){
+          // co-contraction: рисуем в обеих дорожках зелёным
+          [[aTop,aBot],[bTop,bBot]].forEach(function(pr){
+            ctx.fillStyle=css('--c3'); ctx.globalAlpha=0.85;
+            ctx.fillRect(x0, pr[0]+8, Math.max(3,x1-x0), pr[1]-pr[0]-16);
+          });
+          ctx.globalAlpha=1;
+          return;
+        }
+        var top = seg.ch==='A'?aTop:bTop, bot = seg.ch==='A'?aBot:bBot;
+        // высота «силы» — фиксированная, ширина = длительность
+        ctx.fillStyle=chColor(seg.ch); ctx.globalAlpha=0.85;
+        ctx.fillRect(x0, top+8, Math.max(3,x1-x0), bot-top-16);
+        ctx.globalAlpha=1;
+        // порог удержания: пунктирная отметка ширины T_hold от начала сегмента
+        var p=P(), xh=X(seg.t0+p.hold);
+        if(xh>x0 && xh<W-padR){
+          ctx.strokeStyle=css('--warn'); ctx.setLineDash([4,3]); ctx.lineWidth=1;
+          ctx.beginPath(); ctx.moveTo(xh, top+4); ctx.lineTo(xh, bot-4); ctx.stroke(); ctx.setLineDash([]);
+        }
+      }
+      segs.forEach(drawSeg);
+
+      // «сейчас»-курсор (правый край)
+      ctx.strokeStyle=ink; ctx.lineWidth=1.4;
+      ctx.beginPath(); ctx.moveTo(X(tNow), padT); ctx.lineTo(X(tNow), bBot+2); ctx.stroke();
+
+      // ось времени
+      ctx.fillStyle=muted; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      for(var k=0;k<=3;k++){ var frac=k/3, tt=tLeft+frac*WINDOW, xx=padL+frac*(W-padL-padR);
+        ctx.fillText(fmt((tt-tNow)/1000,1)+' c', xx, bBot+16); }
+      ctx.textAlign='right'; ctx.fillText('сейчас', W-padR, bBot+16);
+
+      // readout: последние команды + текущее состояние серии
+      var p=P();
+      var pending = series.count>0 ? (' · собирается серия: '+series.count+' тап(а), жду паузу &gt; '+p.gap+' мс') : '';
+      var lastList = commands.slice(-4).map(function(c){
+        var col = c.kind==='cc'?css('--c3') : c.kind==='hold'?css('--warn') : css('--accent');
+        return '<b style="color:'+col+'">'+c.text+'</b>';
+      });
+      if(commands.length===0 && series.count===0){
+        out.className='readout ok';
+        out.innerHTML='Пока тихо. Кликни «мышца A» пару раз подряд — соберётся двойной тап.'+pending;
+      } else {
+        out.className='readout ok';
+        var head = lastList.length? ('Распознано: '+lastList.join(' &nbsp;→&nbsp; ')) : 'Жду завершения серии…';
+        out.innerHTML = head + pending +
+          '. <span class="muted">('+ 'таймаут '+p.gap+' мс, порог удержания '+p.hold+' мс)</span>';
+      }
+    }
+
+    [gapEl,holdEl,ccEl].forEach(function(e){ e.addEventListener('input', draw); });
+
+    function loop(){ draw(); requestAnimationFrame(loop); }
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    requestAnimationFrame(loop);
+  })();
+
+  // ========== ВИДЖЕТ 2: диаграмма конечного автомата ==========
+  (function(){
+    var scope=document.getElementById('w2_scope'); if(!scope) return;
+    var bTap=document.getElementById('w2_tap'), bHold=document.getElementById('w2_hold'),
+        bCC=document.getElementById('w2_cc'), bReset=document.getElementById('w2_reset'),
+        out=document.getElementById('w2_out');
+
+    // Состояния и переходы (event: 'tap'|'hold'|'cc').
+    // Идея: co-contraction переключает «режим»; тап/удержание в каждом режиме дают свои команды.
+    var STATES = {
+      rest:  { name:'Покой',   pos:[0.16,0.30] },
+      grip:  { name:'Хват',    pos:[0.50,0.16] },
+      mode2: { name:'Режим 2', pos:[0.50,0.72] },
+      rot:   { name:'Поворот', pos:[0.84,0.72] }
+    };
+    // (from, event) -> {to, cmd}
+    var TRANS = {
+      'rest|tap':   {to:'rest',  cmd:'клик (нет команды)'},
+      'rest|hold':  {to:'grip',  cmd:'ЗАХВАТ (закрыть)'},
+      'rest|cc':    {to:'mode2', cmd:'СМЕНА РЕЖИМА →2'},
+      'grip|tap':   {to:'rest',  cmd:'ОТПУСТИТЬ (открыть)'},
+      'grip|hold':  {to:'grip',  cmd:'сильнее сжать'},
+      'grip|cc':    {to:'mode2', cmd:'СМЕНА РЕЖИМА →2'},
+      'mode2|tap':  {to:'rot',   cmd:'ПОВЕРНУТЬ кисть'},
+      'mode2|hold': {to:'mode2', cmd:'стоп/пауза'},
+      'mode2|cc':   {to:'rest',  cmd:'СМЕНА РЕЖИМА →1'},
+      'rot|tap':    {to:'mode2', cmd:'поворот назад'},
+      'rot|hold':   {to:'rot',   cmd:'фиксировать угол'},
+      'rot|cc':     {to:'rest',  cmd:'СМЕНА РЕЖИМА →1'}
+    };
+    var order=['rest','grip','mode2','rot'];
+
+    var cur='rest';
+    var flash=null;        // {key, until} подсветка активного перехода
+    var lastCmd='';
+
+    function evName(ev){ return ev==='tap'?'тап' : ev==='hold'?'удержание' : 'co‑contraction'; }
+
+    function fire(ev){
+      var key=cur+'|'+ev, tr=TRANS[key];
+      if(!tr) return;
+      flash={ from:cur, to:tr.to, ev:ev, until:performance.now()+700, cmd:tr.cmd };
+      lastCmd = evName(ev)+' в «'+STATES[cur].name+'» → <b>'+tr.cmd+'</b> (перешли в «'+STATES[tr.to].name+'»)';
+      cur=tr.to;
+      updOut();
+    }
+    function updOut(){
+      out.className='readout ok';
+      out.innerHTML = 'Текущее состояние: <b style="color:'+css('--accent')+'">'+STATES[cur].name+'</b>. '
+        + (lastCmd? ('Последний переход: '+lastCmd+'.') : 'Жми события — автомат будет переходить и выдавать команды.')
+        + ' <span class="muted">Всего команд в таблице: '+Object.keys(TRANS).length+' из 3 событий × 4 состояний.</span>';
+    }
+
+    bTap.addEventListener('click', function(){ fire('tap'); });
+    bHold.addEventListener('click', function(){ fire('hold'); });
+    bCC.addEventListener('click', function(){ fire('cc'); });
+    bReset.addEventListener('click', function(){ cur='rest'; flash=null; lastCmd=''; updOut(); });
+
+    function nodeXY(s, W, H){ var p=STATES[s].pos; return [p[0]*W, p[1]*H]; }
+
+    function draw(){
+      var ctx=scope.getContext('2d'), W=scope.width, H=scope.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          accent=css('--accent'), warn=css('--warn'), ok=css('--ok'), c4=css('--c4');
+      var R=40;
+      var active = flash && performance.now()<flash.until ? flash : null;
+
+      function edgeColor(ev){ return ev==='tap'?accent : ev==='hold'?warn : ok; }
+
+      // рисуем переходы (стрелки). Собираем по парам (from->to) с их событиями.
+      order.forEach(function(from){
+        ['tap','hold','cc'].forEach(function(ev){
+          var tr=TRANS[from+'|'+ev]; if(!tr) return;
+          var to=tr.to;
+          var isActive = active && active.from===from && active.ev===ev;
+          if(from===to){
+            // петля (self-loop) сверху узла
+            var xy=nodeXY(from,W,H), cx=xy[0], cy=xy[1];
+            ctx.strokeStyle=isActive?edgeColor(ev):line; ctx.lineWidth=isActive?3:1.4;
+            ctx.beginPath(); ctx.arc(cx, cy-R-14, 15, 0.2*Math.PI, 2.6*Math.PI); ctx.stroke();
+            if(isActive){ ctx.fillStyle=edgeColor(ev); ctx.font='bold 12px sans-serif'; ctx.textAlign='center';
+              ctx.fillText(tr.cmd, cx, cy-R-34); }
+          } else {
+            var a=nodeXY(from,W,H), b=nodeXY(to,W,H);
+            var dx=b[0]-a[0], dy=b[1]-a[1], L=Math.sqrt(dx*dx+dy*dy)||1, ux=dx/L, uy=dy/L;
+            // небольшой перпендикулярный сдвиг, чтобы стрелки в обе стороны не сливались
+            var px=-uy, py=ux, off=(ev==='tap'?10:ev==='hold'?-10:0);
+            var ax=a[0]+ux*R+px*off, ay=a[1]+uy*R+py*off;
+            var bx=b[0]-ux*R+px*off, by=b[1]-uy*R+py*off;
+            ctx.strokeStyle=isActive?edgeColor(ev):line; ctx.lineWidth=isActive?3:1.3; ctx.globalAlpha=isActive?1:0.7;
+            ctx.beginPath(); ctx.moveTo(ax,ay); ctx.lineTo(bx,by); ctx.stroke();
+            // наконечник
+            var ah=9, ang=Math.atan2(by-ay, bx-ax);
+            ctx.beginPath(); ctx.moveTo(bx,by);
+            ctx.lineTo(bx-ah*Math.cos(ang-0.4), by-ah*Math.sin(ang-0.4));
+            ctx.lineTo(bx-ah*Math.cos(ang+0.4), by-ah*Math.sin(ang+0.4));
+            ctx.closePath(); ctx.fillStyle=isActive?edgeColor(ev):line; ctx.fill();
+            ctx.globalAlpha=1;
+            if(isActive){ ctx.fillStyle=edgeColor(ev); ctx.font='bold 12px sans-serif'; ctx.textAlign='center';
+              ctx.fillText(tr.cmd, (ax+bx)/2+px*14, (ay+by)/2+py*14); }
+          }
+        });
+      });
+
+      // узлы-состояния
+      order.forEach(function(s){
+        var xy=nodeXY(s,W,H), x=xy[0], y=xy[1], isCur=(s===cur);
+        ctx.beginPath(); ctx.arc(x,y,R,0,2*Math.PI);
+        ctx.fillStyle = isCur ? css('--accent-soft') : css('--card');
+        ctx.fill();
+        ctx.lineWidth=isCur?3.2:1.6; ctx.strokeStyle=isCur?accent:muted; ctx.stroke();
+        ctx.fillStyle=ink; ctx.font=(isCur?'bold ':'')+'14px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(STATES[s].name, x, y+5);
+      });
+
+      // легенда цветов событий
+      ctx.textAlign='left'; ctx.font='12px sans-serif';
+      var lx=14, ly=H-14;
+      ctx.fillStyle=accent; ctx.fillText('■ тап', lx, ly);
+      ctx.fillStyle=warn;   ctx.fillText('■ удержание', lx+70, ly);
+      ctx.fillStyle=ok;     ctx.fillText('■ co‑contraction', lx+185, ly);
+      ctx.fillStyle=muted;  ctx.fillText('(активная стрелка подписана командой)', lx+330, ly);
+    }
+
+    // анимация — для затухания подсветки перехода
+    function loop(){ draw(); requestAnimationFrame(loop); }
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    updOut(); requestAnimationFrame(loop);
+  })();
+
+  // ========== иллюстрация в блоке «почему»: таймаут группирует вспышки ==========
+  (function(){
+    var gapEl=document.getElementById('d_gap'); if(!gapEl) return;
+    var gapV=document.getElementById('d_gapv'), out=document.getElementById('d_out'), cv=document.getElementById('d_ticks');
+
+    // фиксированный поток onset-моментов (мс) — детерминированный, картинка не «прыгает».
+    // Три «естественные» серии с разными внутренними паузами.
+    var ONSETS = [200, 380, 560,      1500, 1720,      2900,      3600, 3760, 3920, 4080];
+    var TSPAN  = 4600;
+
+    function groupByGap(onsets, gap){
+      var groups=[], cur=[onsets[0]];
+      for(var i=1;i<onsets.length;i++){
+        if(onsets[i]-onsets[i-1] <= gap) cur.push(onsets[i]);
+        else { groups.push(cur); cur=[onsets[i]]; }
+      }
+      groups.push(cur);
+      return groups;
+    }
+
+    function draw(){
+      var gap=+gapEl.value; gapV.textContent=gap+' мс';
+      var groups=groupByGap(ONSETS, gap);
+      var ctx=cv.getContext('2d'), W=cv.width, H=cv.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          c1=css('--c1'), c3=css('--c3'), c3s=css('--ok-soft');
+      var padL=20, padR=20, y0=H*0.46;
+      function X(t){ return padL + (t/TSPAN)*(W-padL-padR); }
+
+      // ось времени
+      ctx.strokeStyle=line; ctx.lineWidth=1.4; ctx.beginPath(); ctx.moveTo(padL,y0); ctx.lineTo(W-padR,y0); ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      for(var k=0;k<=4;k++){ var tt=k/4*TSPAN; ctx.fillText(fmt(tt/1000,1)+' c', X(tt), y0+34); }
+
+      // подложки серий (зелёные капсулы) + подписи числа тапов
+      groups.forEach(function(g){
+        var x0=X(g[0])-10, x1=X(g[g.length-1])+10;
+        ctx.fillStyle=c3s; ctx.globalAlpha=0.9;
+        ctx.fillRect(x0, y0-30, x1-x0, 60); ctx.globalAlpha=1;
+        ctx.strokeStyle=c3; ctx.lineWidth=1.4; ctx.strokeRect(x0, y0-30, x1-x0, 60);
+        var n=g.length;
+        var label = n===1?'1 тап' : n===2?'2 тапа' : n+' тапа';
+        ctx.fillStyle=c3; ctx.font='bold 13px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(label+' → команда', (x0+x1)/2, y0-38);
+      });
+
+      // onset-вспышки
+      ONSETS.forEach(function(t){
+        var x=X(t);
+        ctx.strokeStyle=c1; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(x, y0-16); ctx.lineTo(x, y0+16); ctx.stroke();
+        ctx.fillStyle=c1; ctx.beginPath(); ctx.arc(x, y0-16, 4, 0, 2*Math.PI); ctx.fill();
+      });
+
+      out.className='readout ok';
+      out.innerHTML='Таймаут $T_{gap}='+gap+'$ мс → поток из '+ONSETS.length+' вспышек распадается на <b>'
+        + groups.length + '</b> команд(ы): '
+        + groups.map(function(g){return g.length;}).join(' + ')
+        + '. <span class="muted">Двигай таймаут: маленький — всё распадается на одиночные; большой — всё слипается в одну серию.</span>';
+      if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([out]);
+    }
+    gapEl.addEventListener('input', draw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+    draw();
+  })();
+</script>
+
+</body>
+</html>

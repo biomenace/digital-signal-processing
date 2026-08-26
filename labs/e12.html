@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E12 — Экранный манипулятор (клешня) от датасет-потока</title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+    --c1:#2d6cdf; --c2:#d9822b; --c3:#0f9d58; --c4:#a24bd6; --c5:#e0457b;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+    --c1:#6ea0ff; --c2:#e0a45f; --c3:#4cc98a; --c4:#c07ff0; --c5:#f07aa6;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:14px; height:14px; border-radius:3px; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 150px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl select{flex:1; padding:5px 8px; border-radius:7px; border:1px solid var(--line); background:var(--card); color:var(--ink); font-size:14px;}
+  .ctrl .val{flex:0 0 72px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .btn{cursor:pointer; background:var(--accent); color:#fff; border:none; border-radius:9px;
+    padding:8px 16px; font-size:15px; font-weight:600; box-shadow:var(--shadow);}
+  .btn:hover{filter:brightness(1.06);}
+  .btn.sec{background:var(--card); color:var(--ink); border:1px solid var(--line);}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:9px; overflow:hidden;}
+  .seg button{cursor:pointer; border:none; background:var(--card); color:var(--ink); padding:7px 14px; font-size:14px; font-weight:600;}
+  .seg button.on{background:var(--accent); color:#fff;}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E12</span>
+  <h1>Экранный манипулятор — клешня от датасет-потока</h1>
+  <p>Серия «синус → протез» · часть 2 (финал) · одна тема: живой сигнал мышцы двигает клешню на экране — двумя способами</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> вся часть 2 вела сюда. У нас уже есть два «декодера»
+    сигнала мышцы: <b>классификатор</b> (E7) говорит «жест / покой» — это
+    <span class="term" data-tip="Бинарное управление: команда имеет два состояния — открыть / закрыть. Просто и надёжно, но грубо (никаких промежуточных положений).">бинарно</span>
+    (open/close), и <b>регрессия</b> (E9) выдаёт <b>уровень силы 0–100%</b> — это
+    <span class="term" data-tip="Пропорциональное управление: угол клешни плавно следует за силой мышцы (0..100% → полностью открыта .. полностью закрыта). Точнее и естественнее.">пропорционально</span>.
+    Здесь мы берём <b>живой поток</b> реального сигнала (из датасета MYO) и <b>двигаем им клешню на
+    экране</b>: то как выключатель (закрыть/открыть по порогу), то как ручку громкости (угол = сила).
+    Никакого железа — весь протез в компьютере.
+  </p>
+  <p style="margin-bottom:0">
+    Цель работы — <b>не запустить код</b>, а понять три вещи: как класс превращается в
+    <b>команду</b> (open/close), а уровень — в <b>угол</b> клешни (линейно); почему бинарное
+    управление <b>простое и надёжное</b>, а пропорциональное — <b>плавное и точное</b>; и как измерить,
+    что «плюс-минус работает» — задачей на попадание в цель (<span class="term" data-tip="Закон Фиттса: время наведения на цель тем больше, чем дальше цель и чем она уже. Индекс сложности ID = log2(2D/W).">Фиттс</span> /
+    <span class="term" data-tip="TAC (Target Achievement Control): тест протеза — доведи схват до заданного положения и удержи его заданное время. Мера практической управляемости.">TAC</span>). В конце — компактно, как это устроено в настоящих протезах.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0"><b>Два маппинга — и всё.</b> Клешня — это один параметр:
+  <span class="term" data-tip="Угол раскрытия клешни: 0° = полностью открыта, 90° = полностью закрыта. Им управляет сигнал мышцы.">угол раскрытия $\theta$</span>
+  от 0° (открыта) до 90° (закрыта). Управлять им можно двумя способами.</p>
+  <p style="margin:2px 0"><b>1. Бинарно (из классификатора).</b> Есть уровень силы
+  <span class="term" data-tip="Уровень силы: нормированная огибающая RMS сигнала, 0..100. 0 — мышца молчит, 100 — сильное сокращение.">$L$</span> (0..100).
+  Сравниваем с <span class="term" data-tip="Порог: граница силы, выше которой считаем «мышца сжата → закрыть», ниже — «покой → открыть».">порогом</span> $L_0$:</p>
+  \[ \text{команда}=\begin{cases}\text{закрыть},& L\ge L_0\\[2pt]\text{открыть},& L<L_0\end{cases}
+     \qquad \theta\ \to\ \begin{cases}90^\circ\\ 0^\circ\end{cases} \]
+  <p style="margin:2px 0"><b>2. Пропорционально (из регрессии).</b> Угол — <b>линейная</b> функция уровня:</p>
+  \[ \theta \;=\; \frac{L}{100}\cdot 90^\circ. \]
+  <p style="margin:2px 0"><b>Задержка/дребезг.</b> Сырой уровень дрожит → у порога клешня «клацает»
+  туда-сюда (<span class="term" data-tip="Дребезг: быстрые ложные переключения у порога — клешня открывается/закрывается без реальной команды. Знакомо по E10.">дребезг</span>, как в E10).
+  Лечим <span class="term" data-tip="Сглаживание (EMA): экспоненциальное среднее уровня. Больше сглаживание — плавнее, но отклик медленнее (задержка).">сглаживанием</span>
+  и <span class="term" data-tip="Гистерезис/антидребезг: закрываем при L≥L0, а открываем только когда L упадёт заметно ниже L0. Зазор гасит клацанье у порога.">гистерезисом</span> —
+  ценой небольшой задержки.</p>
+  <div class="note" style="margin-bottom:0"><b>Мостик.</b> Классификатор open/close — из <b>E7</b>,
+  уровень силы (регрессия) — из <b>E9</b>, живой поток и стабилизация — из <b>E10</b>. Здесь мы
+  свели их в <b>управление клешнёй</b>.</div>
+</div>
+
+<!-- ============ ВИДЖЕТ 1 · интерактивная клешня (АНИМАЦИЯ) ============ -->
+<div class="lab">
+  <h3>Виджет 1 · Клешня от живого сигнала: бинарно vs пропорционально</h3>
+  <p style="margin-top:2px">Слева — <b>клешня</b>, её угол задаёт сигнал. Справа — бежит
+  <b>уровень силы</b> (реальный сегмент MYO, несколько сжатий кулака) и порог. Выбери <b>режим</b>,
+  нажми ▶ — поток проигрывается как реальное время, клешня открывается/закрывается. Или переключись
+  на <b>ручной</b> источник и веди силу ползунком сам. Двигай пороги/сглаживание прямо на ходу.</p>
+  <canvas id="w1_scope" class="scope" width="860" height="300"></canvas>
+  <div class="legend" id="w1_leg"></div>
+  <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:8px 0 4px">
+    <span class="seg" id="w1_mode">
+      <button data-m="bin" class="on">Бинарно (open/close)</button>
+      <button data-m="prop">Пропорционально (0–100)</button>
+    </span>
+    <span class="seg" id="w1_src">
+      <button data-s="stream" class="on">Поток из датасета</button>
+      <button data-s="manual">Ручной ползунок</button>
+    </span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Ручной уровень силы мышцы 0..100 — работает в источнике «Ручной ползунок».">Сила мышцы $L$ (ручн.)</span></label><input type="range" id="w1_man" min="0" max="100" step="1" value="0"><span class="val" id="w1_manv">0</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Порог L0 для бинарного режима: L≥L0 → закрыть. В пропорц. режиме не используется.">Порог $L_0$ (бинар.)</span></label><input type="range" id="w1_thr" min="5" max="95" step="1" value="40"><span class="val" id="w1_thrv">40</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Гистерезис: зазор ниже порога, при котором клешня открывается обратно. Больше зазор — меньше дребезг у порога.">Гистерезис (бинар.)</span></label><input type="range" id="w1_hys" min="0" max="30" step="1" value="8"><span class="val" id="w1_hysv">8</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Сглаживание уровня (EMA): 0 — сырой дрожащий сигнал, 0.9 — очень плавный, но с задержкой.">Сглаживание</span></label><input type="range" id="w1_sm" min="0" max="0.9" step="0.05" value="0.4"><span class="val" id="w1_smv">0,40</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Скорость проигрывания потока: сколько кадров датасета в секунду анимации.">Скорость потока</span></label><input type="range" id="w1_spd" min="4" max="40" step="2" value="16"><span class="val" id="w1_spdv">16</span></div>
+  </div>
+  <div style="display:flex; gap:10px; align-items:center; margin:8px 0 2px">
+    <button class="btn" id="w1_play">▶ Пуск</button>
+    <button class="btn sec" id="w1_reset">⟲ Сброс</button>
+    <span class="muted" id="w1_clock">t = 0,00 c</span>
+  </div>
+  <div class="readout ok" id="w1_out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки на ходу):</b>
+    <ol style="margin:6px 0 0">
+      <li>Режим <b>Бинарно</b>, гистерезис = 0. Поставь порог так, чтобы он резал сигнал по середине
+          сокращения — увидишь <b>дребезг</b> (клешня клацает). Подними гистерезис — клацанье гаснет.</li>
+      <li>Переключись на <b>Пропорционально</b>. Клешня теперь <b>плавно</b> следует за силой —
+          никаких «клац», можно держать промежуточное раскрытие. Порог тут не при чём.</li>
+      <li>Увеличь <b>сглаживание</b>. Дрожь клешни падает, но реакция на сжатие <b>отстаёт</b> —
+          это цена стабильности (как в E10).</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВИДЖЕТ 2 · задача Фиттса / TAC ============ -->
+<div class="lab">
+  <h3>Виджет 2 · Попади в цель и удержи (Фиттс / TAC)</h3>
+  <p style="margin-top:2px">Мини-тест управляемости. На шкале раскрытия задана <b>цель</b> (зелёная
+  полоса шириной $W$). Веди клешню к ней <b>ползунком силы</b>: как только текущее раскрытие попало
+  внутрь цели и <b>удержалось</b> заданное время — задача решена, таймер печатает <b>время
+  достижения</b>. Сравни, каким режимом это легче: <b>бинарным</b> (только 0° или 90° — в узкую цель
+  посередине не попасть!) или <b>пропорциональным</b> (любой угол).</p>
+  <canvas id="w2_scope" class="scope" width="860" height="150"></canvas>
+  <div style="display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin:8px 0 4px">
+    <span class="seg" id="w2_mode">
+      <button data-m="bin" class="on">Бинарно</button>
+      <button data-m="prop">Пропорционально</button>
+    </span>
+    <button class="btn sec" id="w2_new">🎯 Новая цель</button>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Ползунок силы мышцы 0..100 — им ты ведёшь клешню к цели.">Сила мышцы $L$</span></label><input type="range" id="w2_L" min="0" max="100" step="1" value="0"><span class="val" id="w2_Lv">0</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Ширина цели W (в градусах раскрытия). Уже цель → выше индекс сложности Фиттса → труднее попасть.">Ширина цели $W$</span></label><input type="range" id="w2_W" min="6" max="40" step="2" value="16"><span class="val" id="w2_Wv">16°</span></div>
+  </div>
+  <div class="readout ok" id="w2_out"></div>
+  <div class="tasklist">
+    <b>Задания:</b>
+    <ol style="margin:6px 0 0">
+      <li>Режим <b>Пропорционально</b>, ширина $W=16°$, цель где-то посередине. Доведи и удержи —
+          запиши <b>время достижения</b>.</li>
+      <li>Тот же таргет, режим <b>Бинарно</b>. Попробуй попасть в середину: клешня прыгает только
+          между 0° и 90° — в узкую цель <b>посередине не попасть вообще</b>. Убедись в этом на виджете.</li>
+      <li>Сузь цель ($W=6°$). Индекс сложности <span class="term" data-tip="Индекс сложности ID = log2(2·D/W): растёт при удалённой (D) и узкой (W) цели. Больше ID — дольше наведение.">$ID$</span>
+          вырос — время попадания в пропорц. режиме тоже подросло. Это и есть закон Фиттса.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему это работает: класс→команда, уровень→угол, и как это в настоящих протезах<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Управление клешнёй — не чёрный ящик и не «нейросеть решает». Это буквально
+    <b>две строчки маппинга</b>: либо «сравнил с порогом → открыть/закрыть», либо «поделил уровень на
+    100 и умножил на 90° → угол». Двигай ползунок ниже — иллюстрация покажет оба маппинга рядом:
+    бинарный (ступенька) и пропорциональный (плавная прямая).</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Уровень силы мышцы 0..100 — общий вход для обеих схем маппинга ниже.">Уровень $L$</span></label><input type="range" id="d_L" min="0" max="100" step="1" value="30"><span class="val" id="d_Lv">30</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Порог L0 для бинарной ступеньки на графике ниже.">Порог $L_0$</span></label><input type="range" id="d_thr" min="5" max="95" step="1" value="40"><span class="val" id="d_thrv">40</span></div>
+      </div>
+      <div class="readout ok" id="d_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Маппинг уровень → угол: ступенька vs прямая</h3>
+    <p style="margin-top:2px">По горизонтали — уровень силы $L$ (0..100), по вертикали — угол клешни
+    $\theta$ (0..90°). <b>Бинарный</b> маппинг — ступенька: до порога 0°, после — сразу 90°, ничего
+    промежуточного. <b>Пропорциональный</b> — прямая $\theta=L/100\cdot90°$: каждому уровню свой угол.
+    Точка на графиках — где сейчас стоит твой $L$.</p>
+    <canvas id="d_map" class="scope" width="860" height="240"></canvas>
+    <div class="legend" style="margin-bottom:12px">
+      <span><span class="sw" style="background:var(--warn)"></span>бинарно — ступенька (open/close)</span>
+      <span><span class="sw" style="background:var(--accent)"></span>пропорц. — прямая (угол = сила)</span>
+      <span><span class="sw" style="background:var(--muted)"></span>порог $L_0$</span>
+    </div>
+
+    <h3>Почему пропорц. даёт плавность, а бинарное — надёжность</h3>
+    <p style="margin-top:2px">Пропорциональный маппинг непрерывен: маленькое изменение силы → маленькое
+    изменение угла. Клешня «дышит» вместе с мышцей, можно держать чашку, не раздавив. Бинарный — грубый,
+    но у него <b>нет промежуточных состояний</b>, где легко ошибиться: команда всего одна из двух, и её
+    почти невозможно перепутать. Дребезг у порога лечим гистерезисом (E10): закрываем при $L\ge L_0$,
+    открываем только когда $L$ упал ниже $L_0-h$.</p>
+
+    <h3>Адаптация и рекалибровка</h3>
+    <p style="margin-top:2px">Сигнал мышцы <b>плывёт со временем</b> (E8): устал, вспотел, сдвинулся
+    браслет — и тот же жест даёт другой уровень. Поэтому реальный протез время от времени
+    <span class="term" data-tip="Рекалибровка: заново замерить «покой» и «максимум силы» и пересчитать нормировку/пороги, потому что сигнал уплыл (усталость, пот, смещение электродов).">рекалибруют</span>:
+    заново меряют покой и максимум, пересчитывают нормировку и пороги. Без этого порог $L_0$ однажды
+    окажется «не там», и клешня начнёт врать.</p>
+
+    <h3>Как это делают в настоящих протезах (3 парадигмы)</h3>
+    <p style="margin-top:2px"><b>Direct control.</b>
+    <span class="term" data-tip="Direct control: пара мышц-антагонистов напрямую рулит одним движением (одна закрывает, другая открывает). Классика, десятилетия в клинике; надёжно, но по одному DOF за раз.">Прямое управление</span> —
+    две мышцы-антагониста: одна закрывает схват, другая открывает; сила сокращения = скорость. Просто и
+    надёжно, но один <span class="term" data-tip="DOF (степень свободы): одно независимое движение — например «схват открыть/закрыть». Многосхватная кисть имеет несколько DOF.">DOF</span> за раз, переключение хватов неудобно.</p>
+    <p style="margin:6px 0"><b>Pattern-recognition.</b>
+    <span class="term" data-tip="Pattern-recognition: классификатор по многим электродам распознаёт, КАКОЙ жест ты делаешь, и выбирает соответствующий хват. Это и есть наш бинарный/классовый путь (E7).">Распознавание образов</span> —
+    классификатор по многим каналам определяет <i>какой</i> жест ты задумал и включает нужный хват. Это
+    ровно наш путь E7 → бинарная команда. Много хватов, но чувствителен к смещению электродов и требует
+    рекалибровки.</p>
+    <p style="margin:6px 0"><b>Регрессия (пропорц.).</b>
+    <span class="term" data-tip="Регрессионное управление: сигнал → непрерывная величина (сила/положение), часто по нескольким DOF сразу и плавно. Это наш путь E9 → угол.">Регрессионное управление</span> —
+    сигнал напрямую в <i>непрерывное</i> положение/силу, часто по нескольким DOF одновременно и плавно.
+    Это наш путь E9 → угол клешни. Естественнее всего, но труднее обучить и стабилизировать.</p>
+
+    <h3>Как измеряют, что «работает»: Фиттс и TAC</h3>
+    <p style="margin-top:2px"><b>Закон Фиттса</b>: время наведения на цель растёт с расстоянием $D$ и
+    падает с шириной $W$. Сводится в один индекс сложности:</p>
+    \[ ID \;=\; \log_2\!\Bigl(\frac{2D}{W}\Bigr),\qquad
+       T_{\text{наведения}} \;\approx\; a + b\cdot ID. \]
+    <p style="margin:2px 0"><b>TAC</b> (Target Achievement Control) — тот же дух, но для протеза: доведи
+    схват до заданного положения (и/или заданной силы) и <b>удержи</b> его несколько секунд. Меряют
+    время достижения, число промахов, время удержания. Именно это делает Виджет 2.</p>
+
+    <div class="formula-ex">
+      <b>Пример (Фиттс).</b> Цель посередине шкалы, расстояние $D=45°$, ширина $W=16°$.<br>
+      $ID=\log_2(2\cdot45/16)=\log_2(5{,}6)\approx \mathbf{2{,}5}$ бит.<br>
+      Сузим цель до $W=6°$: $ID=\log_2(2\cdot45/6)=\log_2(15)\approx \mathbf{3{,}9}$ бит — заметно
+      труднее, время наведения по $T\approx a+b\cdot ID$ вырастет.<br>
+      Граничный случай — бинарный режим: доступны только $0°$ и $90°$, для цели <i>посередине</i>
+      $ID$ бессмысленен — попасть нечем.
+    </div>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Порядок счёта управления клешнёй (на каждый кадр):</b></p>
+    <ol style="margin-top:2px">
+      <li>пришёл новый уровень $L$ из потока (или с ползунка);</li>
+      <li>сгладили: $L\leftarrow \alpha L_{\text{пред}} + (1-\alpha)L$ (гасим дрожь);</li>
+      <li><b>бинарно:</b> закрыто? держим, пока $L\ge L_0-h$; открыто? закрываем при $L\ge L_0$;</li>
+      <li><b>пропорц.:</b> $\theta=L/100\cdot90°$ — напрямую;</li>
+      <li>нарисовали клешню под углом $\theta$.</li>
+    </ol>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Часть А проверяется в <b>Виджете 1</b> (клешня от потока), часть Б — в
+  <b>Виджете 2</b> (задача Фиттса/TAC). Записывай числа и наблюдения.</p>
+
+  <h3 style="margin-top:6px">Часть А · подобрать порог, чтобы клешня не дребезжала</h3>
+  <p style="margin-top:2px">В Виджете 1, режим <b>Бинарно</b>, источник — поток из датасета. При
+  заданном сглаживании найди <b>порог $L_0$ и гистерезис</b>, при которых за весь прогон клешня
+  делает <b>ровно столько переключений, сколько реальных сжатий</b> (без лишних «клац»). Запиши: порог,
+  гистерезис, число переключений клешни (виджет считает) и число реальных сжатий.</p>
+  <table>
+    <tr><th>Вариант</th><th>Сглаживание $\alpha$</th><th>Цель по переключениям</th></tr>
+    <tr><td>1</td><td>0,40</td><td>= числу сжатий (без лишних)</td></tr>
+    <tr><td>2</td><td>0,20</td><td>= числу сжатий</td></tr>
+    <tr><td>3</td><td>0,60</td><td>= числу сжатий</td></tr>
+    <tr><td>4</td><td>0,10</td><td>= числу сжатий</td></tr>
+    <tr><td>5</td><td>0,50</td><td>= числу сжатий</td></tr>
+  </table>
+
+  <h3>Часть Б · Фиттс: бинарно vs пропорционально</h3>
+  <p style="margin-top:2px">В Виджете 2 для заданной ширины цели $W$ выполни задачу
+  <b>пропорциональным</b> режимом (запиши время достижения) и попробуй <b>бинарным</b> (для цели
+  посередине). <b>Посчитай</b> индекс сложности $ID=\log_2(2D/W)$ (расстояние $D$ виджет печатает) и
+  <b>объясни словами</b>, почему пропорц. управление точнее для попадания, а бинарное для средней цели
+  вообще не годится.</p>
+  <table>
+    <tr><th>Вариант</th><th>Ширина цели $W$</th><th>Что сравнить</th></tr>
+    <tr><td>1</td><td>16°</td><td>время (проп.) vs невозможность (бинар.)</td></tr>
+    <tr><td>2</td><td>10°</td><td>то же + пересчитать $ID$</td></tr>
+    <tr><td>3</td><td>24°</td><td>то же</td></tr>
+    <tr><td>4</td><td>8°</td><td>то же (самая узкая)</td></tr>
+    <tr><td>5</td><td>20°</td><td>то же</td></tr>
+  </table>
+  <div class="note" style="margin-bottom:0"><b>Связка «формула ↔ картинка».</b> В части Б сначала
+  <b>посчитай</b> $ID$ по формуле, потом <b>проверь в виджете</b>: чем больше $ID$ (уже цель), тем дольше
+  наведение — ровно как обещает закон Фиттса.</div>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li><b>Управление клешнёй — это маппинг.</b> Класс → команда (open/close), уровень → угол
+        ($\theta=L/100\cdot90°$). Всё остальное — обвязка.</li>
+    <li><b>Бинарно</b> — просто и надёжно (две команды, не перепутать), но грубо: нет промежуточных
+        положений. <b>Пропорц.</b> — плавно и точно, но требует хорошей регрессии и стабилизации.</li>
+    <li>Сырой сигнал <b>дребезжит</b> у порога → сглаживание + гистерезис гасят «клац» ценой
+        <b>задержки</b> (компромисс из E10).</li>
+    <li>Управляемость меряют <b>задачей на попадание</b>: закон Фиттса ($ID=\log_2(2D/W)$) и
+        TAC-тест (доведи и удержи). Так видно, что «плюс-минус работает».</li>
+    <li>В реальных протезах: <b>direct control</b> (антагонисты), <b>pattern-recognition</b>
+        (классификатор хватов = наш бинарный путь), <b>регрессия</b> (наш пропорц. путь);
+        и всё это надо <b>рекалибровать</b>, потому что сигнал плывёт (E8).</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Часть 2 завершена.</b> Мы прошли путь от сырого
+  датасета до <b>управления манипулятором</b> живым сигналом. Дальше — <b>часть 3</b>: свой собственный
+  сигнал.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Как класс (open/close) превращается в команду клешне? Как уровень силы — в угол?</li>
+      <li>Запиши маппинг $\theta=f(L)$ для пропорц. режима. Что происходит при $L=0$, $L=50$, $L=100$?</li>
+      <li>Почему бинарное управление надёжнее, а пропорциональное — точнее и плавнее?</li>
+      <li>Что такое дребезг у порога? Как гистерезис и сглаживание его гасят и чем за это платим?</li>
+      <li>Direct control, pattern-recognition, регрессия — чем отличаются? Какой из наших путей (E7/E9)
+          какой парадигме соответствует?</li>
+      <li>Зачем протезу рекалибровка? Что именно «плывёт» в сигнале (связь с E8)?</li>
+      <li>Что такое закон Фиттса и индекс сложности $ID=\log_2(2D/W)$? Как меняется время наведения при
+          сужении цели?</li>
+      <li>Что такое TAC-тест? Почему бинарным режимом нельзя попасть в узкую цель посередине шкалы?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: Python (игра + маппинг)<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Два необязательных скрипта в папке лабы (сама работа — в браузере выше,
+    код не нужен):</p>
+    <ul style="margin:6px 0">
+      <li><code>game.py</code> — <b>отдельная pygame-игра</b>: рисует клешню и управляет ей (а)
+          клавишами/мышью или (б) проигрыванием реального потока из <code>signals_demo/</code>; режимы
+          <b>бинарно</b> и <b>пропорц.</b>. Запуск из папки лабы:
+          <kbd>../.venv/bin/python game.py</kbd> (или <kbd>cd EMG_assignment_E12 &amp;&amp;
+          ../.venv/bin/python game.py</kbd>). Pygame уже стоит в общем <code>.venv</code>. Без дисплея
+          (headless) — <kbd>SDL_VIDEODRIVER=dummy ../.venv/bin/python game.py --selftest</kbd>: прогонит
+          маппинг без окна и напечатает несколько кадров.</li>
+      <li><code>solution.py</code> — §8-спутник (matplotlib): строит поток уровня и показывает угол
+          клешни <b>бинарно vs пропорц.</b> во времени, печатает как класс/уровень → команда. Запуск из
+          <code>dsp/</code>: <kbd>./run.sh E12</kbd> (<kbd>./run.sh E12 --save</kbd> — картинка в
+          <code>Materials/task1.png</code>).</li>
+    </ul>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез» · <b>часть 2 завершена</b> · дальше: <b>часть 3</b> — E13: свой сигнал с $3-сенсора (собери ЭМГ-датчик и сними мышцу сам)
+</p>
+
+</div>
+
+<script>
+  // встроенные данные потока уровня (реальный сегмент MYO); заполняет make_assets.py
+  var E12_DATA = /*DATA_START*/{"subject":"01","gesture":"кулак","win_ms":150.0,"step_ms":25.0,"onset_level":22.0,"fs":1000.0,"steps":[{"t":0.15,"l":5.4,"a":0},{"t":0.175,"l":5.5,"a":0},{"t":0.2,"l":5.6,"a":0},{"t":0.225,"l":5.6,"a":0},{"t":0.25,"l":5.7,"a":0},{"t":0.275,"l":5.4,"a":0},{"t":0.3,"l":5.2,"a":0},{"t":0.325,"l":4.9,"a":0},{"t":0.35,"l":5.3,"a":0},{"t":0.375,"l":5.5,"a":0},{"t":0.4,"l":5.3,"a":0},{"t":0.425,"l":5.3,"a":0},{"t":0.45,"l":5.6,"a":0},{"t":0.475,"l":5.5,"a":0},{"t":0.5,"l":5.2,"a":0},{"t":0.525,"l":4.9,"a":0},{"t":0.55,"l":5.2,"a":0},{"t":0.575,"l":5.6,"a":0},{"t":0.6,"l":5.5,"a":0},{"t":0.625,"l":5.8,"a":0},{"t":0.65,"l":5.9,"a":0},{"t":0.675,"l":6.1,"a":0},{"t":0.7,"l":6.2,"a":0},{"t":0.725,"l":6.3,"a":0},{"t":0.75,"l":6.4,"a":0},{"t":0.775,"l":6.2,"a":0},{"t":0.8,"l":5.9,"a":0},{"t":0.825,"l":5.6,"a":0},{"t":0.85,"l":5.0,"a":0},{"t":0.875,"l":4.7,"a":0},{"t":0.9,"l":5.0,"a":0},{"t":0.925,"l":5.2,"a":0},{"t":0.95,"l":5.0,"a":0},{"t":0.975,"l":5.1,"a":0},{"t":1.0,"l":5.4,"a":0},{"t":1.025,"l":5.2,"a":0},{"t":1.05,"l":4.9,"a":0},{"t":1.075,"l":4.6,"a":0},{"t":1.1,"l":4.8,"a":0},{"t":1.125,"l":4.4,"a":0},{"t":1.15,"l":4.2,"a":0},{"t":1.175,"l":4.7,"a":0},{"t":1.2,"l":4.7,"a":0},{"t":1.225,"l":4.6,"a":0},{"t":1.25,"l":4.7,"a":0},{"t":1.275,"l":5.2,"a":0},{"t":1.3,"l":5.3,"a":0},{"t":1.325,"l":5.1,"a":0},{"t":1.35,"l":5.5,"a":0},{"t":1.375,"l":6.4,"a":0},{"t":1.4,"l":7.4,"a":0},{"t":1.425,"l":11.4,"a":0},{"t":1.45,"l":13.8,"a":0},{"t":1.475,"l":20.9,"a":0},{"t":1.5,"l":29.8,"a":1},{"t":1.525,"l":39.7,"a":1},{"t":1.55,"l":48.8,"a":1},{"t":1.575,"l":50.5,"a":1},{"t":1.6,"l":58.2,"a":1},{"t":1.625,"l":67.5,"a":1},{"t":1.65,"l":80.7,"a":1},{"t":1.675,"l":86.5,"a":1},{"t":1.7,"l":92.9,"a":1},{"t":1.725,"l":100.0,"a":1},{"t":1.75,"l":100.0,"a":1},{"t":1.775,"l":97.7,"a":1},{"t":1.8,"l":88.1,"a":1},{"t":1.825,"l":96.0,"a":1},{"t":1.85,"l":99.8,"a":1},{"t":1.875,"l":100.0,"a":1},{"t":1.9,"l":100.0,"a":1},{"t":1.925,"l":100.0,"a":1},{"t":1.95,"l":100.0,"a":1},{"t":1.975,"l":100.0,"a":1},{"t":2.0,"l":100.0,"a":1},{"t":2.025,"l":100.0,"a":1},{"t":2.05,"l":98.3,"a":1},{"t":2.075,"l":84.4,"a":1},{"t":2.1,"l":84.8,"a":1},{"t":2.125,"l":86.7,"a":1},{"t":2.15,"l":84.8,"a":1},{"t":2.175,"l":79.6,"a":1},{"t":2.2,"l":76.7,"a":1},{"t":2.225,"l":77.2,"a":1},{"t":2.25,"l":80.5,"a":1},{"t":2.275,"l":86.4,"a":1},{"t":2.3,"l":86.8,"a":1},{"t":2.325,"l":81.2,"a":1},{"t":2.35,"l":78.7,"a":1},{"t":2.375,"l":79.5,"a":1},{"t":2.4,"l":73.5,"a":1},{"t":2.425,"l":63.0,"a":1},{"t":2.45,"l":59.9,"a":1},{"t":2.475,"l":59.9,"a":1},{"t":2.5,"l":64.5,"a":1},{"t":2.525,"l":65.5,"a":1},{"t":2.55,"l":71.1,"a":1},{"t":2.575,"l":74.3,"a":1},{"t":2.6,"l":74.9,"a":1},{"t":2.625,"l":73.9,"a":1},{"t":2.65,"l":70.8,"a":1},{"t":2.675,"l":66.7,"a":1},{"t":2.7,"l":57.7,"a":1},{"t":2.725,"l":54.3,"a":1},{"t":2.75,"l":54.2,"a":1},{"t":2.775,"l":58.0,"a":1},{"t":2.8,"l":56.4,"a":1},{"t":2.825,"l":56.9,"a":1},{"t":2.85,"l":61.3,"a":1},{"t":2.875,"l":60.6,"a":1},{"t":2.9,"l":60.0,"a":1},{"t":2.925,"l":59.1,"a":1},{"t":2.95,"l":58.5,"a":1},{"t":2.975,"l":58.4,"a":1},{"t":3.0,"l":60.6,"a":1},{"t":3.025,"l":61.8,"a":1},{"t":3.05,"l":64.5,"a":1},{"t":3.075,"l":66.4,"a":1},{"t":3.1,"l":66.3,"a":1},{"t":3.125,"l":63.5,"a":1},{"t":3.15,"l":62.7,"a":1},{"t":3.175,"l":58.1,"a":1},{"t":3.2,"l":56.5,"a":1},{"t":3.225,"l":53.5,"a":1},{"t":3.25,"l":53.4,"a":1},{"t":3.275,"l":58.2,"a":1},{"t":3.3,"l":54.1,"a":1},{"t":3.325,"l":54.7,"a":1},{"t":3.35,"l":52.6,"a":1},{"t":3.375,"l":50.9,"a":1},{"t":3.4,"l":48.3,"a":1},{"t":3.425,"l":43.7,"a":1},{"t":3.45,"l":48.4,"a":1},{"t":3.475,"l":50.5,"a":1},{"t":3.5,"l":53.4,"a":1},{"t":3.525,"l":60.1,"a":1},{"t":3.55,"l":68.4,"a":1},{"t":3.575,"l":68.9,"a":1},{"t":3.6,"l":68.7,"a":1},{"t":3.625,"l":72.3,"a":1},{"t":3.65,"l":70.2,"a":1},{"t":3.675,"l":62.0,"a":1},{"t":3.7,"l":53.2,"a":1},{"t":3.725,"l":53.2,"a":1},{"t":3.75,"l":49.5,"a":1},{"t":3.775,"l":44.1,"a":1},{"t":3.8,"l":41.1,"a":1},{"t":3.825,"l":48.0,"a":1},{"t":3.85,"l":51.6,"a":1},{"t":3.875,"l":53.6,"a":1},{"t":3.9,"l":54.2,"a":1},{"t":3.925,"l":55.6,"a":1},{"t":3.95,"l":56.1,"a":1},{"t":3.975,"l":51.7,"a":1},{"t":4.0,"l":51.7,"a":1},{"t":4.025,"l":51.7,"a":1},{"t":4.05,"l":52.1,"a":1},{"t":4.075,"l":53.1,"a":1},{"t":4.1,"l":52.7,"a":1},{"t":4.125,"l":51.7,"a":1},{"t":4.15,"l":51.4,"a":1},{"t":4.175,"l":49.0,"a":1},{"t":4.2,"l":48.2,"a":1},{"t":4.225,"l":49.1,"a":1},{"t":4.25,"l":49.9,"a":1},{"t":4.275,"l":50.3,"a":1},{"t":4.3,"l":51.9,"a":1},{"t":4.325,"l":53.3,"a":1},{"t":4.35,"l":51.7,"a":1},{"t":4.375,"l":49.7,"a":1},{"t":4.4,"l":51.0,"a":1},{"t":4.425,"l":52.6,"a":1},{"t":4.45,"l":52.4,"a":1},{"t":4.475,"l":50.5,"a":1},{"t":4.5,"l":49.7,"a":1},{"t":4.525,"l":48.0,"a":1},{"t":4.55,"l":46.7,"a":1},{"t":4.575,"l":43.1,"a":1},{"t":4.6,"l":43.3,"a":1},{"t":4.625,"l":44.2,"a":1},{"t":4.65,"l":46.8,"a":1},{"t":4.675,"l":48.3,"a":1},{"t":4.7,"l":57.5,"a":1},{"t":4.725,"l":59.5,"a":1},{"t":4.75,"l":60.5,"a":1},{"t":4.775,"l":61.4,"a":1},{"t":4.8,"l":59.8,"a":1},{"t":4.825,"l":59.3,"a":1},{"t":4.85,"l":54.0,"a":1},{"t":4.875,"l":53.9,"a":1},{"t":4.9,"l":46.9,"a":1},{"t":4.925,"l":52.7,"a":1},{"t":4.95,"l":60.8,"a":1},{"t":4.975,"l":61.6,"a":1},{"t":5.0,"l":59.3,"a":1},{"t":5.025,"l":60.3,"a":1},{"t":5.05,"l":64.2,"a":1},{"t":5.075,"l":57.9,"a":1},{"t":5.1,"l":50.1,"a":1},{"t":5.125,"l":51.8,"a":1},{"t":5.15,"l":51.4,"a":1},{"t":5.175,"l":65.1,"a":1},{"t":5.2,"l":67.8,"a":1},{"t":5.225,"l":73.9,"a":1},{"t":5.25,"l":86.0,"a":1},{"t":5.275,"l":100.0,"a":1},{"t":5.3,"l":100.0,"a":1},{"t":5.325,"l":100.0,"a":1},{"t":5.35,"l":100.0,"a":1},{"t":5.375,"l":100.0,"a":1},{"t":5.4,"l":100.0,"a":1},{"t":5.425,"l":100.0,"a":1},{"t":5.45,"l":100.0,"a":1},{"t":5.475,"l":100.0,"a":1},{"t":5.5,"l":73.9,"a":1},{"t":5.525,"l":34.7,"a":1},{"t":5.55,"l":26.6,"a":1},{"t":5.575,"l":23.4,"a":1},{"t":5.6,"l":20.9,"a":0},{"t":5.625,"l":18.1,"a":0},{"t":5.65,"l":13.8,"a":0},{"t":5.675,"l":11.9,"a":0},{"t":5.7,"l":10.4,"a":0},{"t":5.725,"l":9.7,"a":0},{"t":5.75,"l":11.4,"a":0},{"t":5.775,"l":13.0,"a":0},{"t":5.8,"l":14.2,"a":0},{"t":5.825,"l":15.3,"a":0},{"t":5.85,"l":15.5,"a":0},{"t":5.875,"l":16.8,"a":0},{"t":5.9,"l":15.3,"a":0},{"t":5.925,"l":14.8,"a":0},{"t":5.95,"l":13.5,"a":0},{"t":5.975,"l":12.5,"a":0},{"t":6.0,"l":10.4,"a":0},{"t":6.025,"l":8.4,"a":0},{"t":6.05,"l":9.0,"a":0},{"t":6.075,"l":8.0,"a":0},{"t":6.1,"l":8.1,"a":0},{"t":6.125,"l":7.7,"a":0},{"t":6.15,"l":8.0,"a":0},{"t":6.175,"l":7.4,"a":0},{"t":6.2,"l":6.5,"a":0},{"t":6.225,"l":6.8,"a":0},{"t":6.25,"l":6.6,"a":0},{"t":6.275,"l":6.7,"a":0},{"t":6.3,"l":6.6,"a":0},{"t":6.325,"l":6.7,"a":0},{"t":6.35,"l":6.5,"a":0},{"t":6.375,"l":6.0,"a":0},{"t":6.4,"l":6.4,"a":0},{"t":6.425,"l":6.6,"a":0},{"t":6.45,"l":6.9,"a":0},{"t":6.475,"l":6.8,"a":0},{"t":6.5,"l":7.2,"a":0},{"t":6.525,"l":7.0,"a":0},{"t":6.55,"l":7.7,"a":0},{"t":6.575,"l":8.1,"a":0},{"t":6.6,"l":7.8,"a":0},{"t":6.625,"l":7.9,"a":0},{"t":6.65,"l":7.8,"a":0},{"t":6.675,"l":7.7,"a":0},{"t":6.7,"l":7.6,"a":0},{"t":6.725,"l":6.9,"a":0},{"t":6.75,"l":6.4,"a":0},{"t":6.775,"l":6.4,"a":0},{"t":6.8,"l":6.6,"a":0},{"t":6.825,"l":7.6,"a":0},{"t":6.85,"l":7.0,"a":0},{"t":6.875,"l":7.5,"a":0},{"t":6.9,"l":7.5,"a":0},{"t":6.925,"l":7.7,"a":0},{"t":6.95,"l":7.5,"a":0},{"t":6.975,"l":6.8,"a":0},{"t":7.0,"l":6.9,"a":0},{"t":7.025,"l":6.8,"a":0},{"t":7.05,"l":7.7,"a":0},{"t":7.075,"l":8.0,"a":0},{"t":7.1,"l":7.6,"a":0},{"t":7.125,"l":7.3,"a":0},{"t":7.15,"l":6.8,"a":0},{"t":7.175,"l":7.0,"a":0},{"t":7.2,"l":7.3,"a":0},{"t":7.225,"l":7.1,"a":0},{"t":7.25,"l":7.5,"a":0},{"t":7.275,"l":8.5,"a":0},{"t":7.3,"l":10.3,"a":0},{"t":7.325,"l":10.0,"a":0},{"t":7.35,"l":10.3,"a":0},{"t":7.375,"l":16.5,"a":0},{"t":7.4,"l":22.6,"a":1},{"t":7.425,"l":23.2,"a":1},{"t":7.45,"l":28.2,"a":1},{"t":7.475,"l":32.9,"a":1},{"t":7.5,"l":33.6,"a":1},{"t":7.525,"l":28.6,"a":1},{"t":7.55,"l":24.8,"a":1},{"t":7.575,"l":26.8,"a":1},{"t":7.6,"l":26.7,"a":1},{"t":7.625,"l":23.3,"a":1},{"t":7.65,"l":24.5,"a":1},{"t":7.675,"l":26.8,"a":1},{"t":7.7,"l":27.3,"a":1},{"t":7.725,"l":30.0,"a":1},{"t":7.75,"l":33.1,"a":1},{"t":7.775,"l":47.3,"a":1},{"t":7.8,"l":63.7,"a":1},{"t":7.825,"l":76.9,"a":1},{"t":7.85,"l":88.5,"a":1},{"t":7.875,"l":100.0,"a":1},{"t":7.9,"l":100.0,"a":1},{"t":7.925,"l":96.6,"a":1},{"t":7.95,"l":82.4,"a":1},{"t":7.975,"l":73.1,"a":1},{"t":8.0,"l":66.0,"a":1},{"t":8.025,"l":60.8,"a":1},{"t":8.05,"l":61.0,"a":1},{"t":8.075,"l":54.4,"a":1}]}/*DATA_END*/;
+
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+
+  var STEPS   = E12_DATA.steps;
+  var STEP_MS = E12_DATA.step_ms;
+  var TEND    = STEPS.length ? STEPS[STEPS.length-1].t : 1;
+
+  // угол клешни: 0° открыта .. 90° закрыта
+  function propAngle(L){ return Math.max(0,Math.min(100,L))/100*90; }
+
+  // нарисовать двупалую клешню в прямоугольнике [x,y,w,h] под углом раскрытия ang (0..90)
+  function drawClaw(ctx, x, y, w, h, ang, colBody, colTip, label){
+    var cx=x+w*0.5, baseY=y+h*0.86;
+    var armLen=h*0.52, fingLen=h*0.34;
+    // ang: 0 = широко открыта, 90 = сомкнута. Полураскрытие пальца:
+    var spread=(90-ang)/90;              // 1 открыта, 0 закрыта
+    var maxHalf=w*0.30, half=w*0.045 + spread*maxHalf;
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    // «запястье»/основание
+    ctx.strokeStyle=colBody; ctx.fillStyle=colBody; ctx.lineWidth=Math.max(6,w*0.035);
+    ctx.beginPath(); ctx.moveTo(cx, baseY); ctx.lineTo(cx, baseY-armLen*0.45); ctx.stroke();
+    var jointY=baseY-armLen*0.45;
+    ctx.beginPath(); ctx.arc(cx, jointY, w*0.035, 0, Math.PI*2); ctx.fill();
+    // два пальца (симметрично), верхняя точка сходится по spread
+    function finger(sign){
+      var midX=cx+sign*(half*0.55), midY=jointY-armLen*0.5;
+      var tipX=cx+sign*half, tipY=jointY-armLen-fingLen*spread*0.2;
+      ctx.strokeStyle=colBody; ctx.lineWidth=Math.max(6,w*0.032);
+      ctx.beginPath(); ctx.moveTo(cx,jointY); ctx.lineTo(midX,midY); ctx.stroke();
+      ctx.strokeStyle=colTip; ctx.lineWidth=Math.max(6,w*0.032);
+      ctx.beginPath(); ctx.moveTo(midX,midY); ctx.lineTo(tipX,tipY); ctx.stroke();
+      ctx.fillStyle=colTip; ctx.beginPath(); ctx.arc(tipX,tipY,w*0.03,0,Math.PI*2); ctx.fill();
+    }
+    finger(-1); finger(1);
+    if(label){ ctx.fillStyle=css('--muted'); ctx.font='13px sans-serif'; ctx.textAlign='center';
+      ctx.fillText(label, cx, y+h-2); }
+  }
+
+  // ---------- Виджет 1: клешня от потока / ползунка ----------
+  (function(){
+    var scope=document.getElementById('w1_scope'); if(!scope) return;
+    var man=document.getElementById('w1_man'), thr=document.getElementById('w1_thr'),
+        hys=document.getElementById('w1_hys'), sm=document.getElementById('w1_sm'),
+        spd=document.getElementById('w1_spd'),
+        manv=document.getElementById('w1_manv'), thrv=document.getElementById('w1_thrv'),
+        hysv=document.getElementById('w1_hysv'), smv=document.getElementById('w1_smv'),
+        spdv=document.getElementById('w1_spdv'),
+        play=document.getElementById('w1_play'), reset=document.getElementById('w1_reset'),
+        clock=document.getElementById('w1_clock'), out=document.getElementById('w1_out'),
+        leg=document.getElementById('w1_leg'),
+        modeBox=document.getElementById('w1_mode'), srcBox=document.getElementById('w1_src');
+
+    var mode='bin', source='stream';
+    var playing=false, headF=0, lastTs=null;
+    var smL=0;                 // сглаженный уровень
+    var closed=false;          // текущее бинарное состояние (для гистерезиса)
+    var flips=0;               // сколько раз клешня переключилась за прогон
+    var N=STEPS.length;
+
+    leg.innerHTML='<span><span class="sw" style="background:var(--accent)"></span>уровень силы $L$</span>'
+      +' <span><span class="sw" style="background:var(--warn)"></span>порог $L_0$ (бинар.)</span>'
+      +' <span><span class="sw" style="background:var(--ok)"></span>клешня</span>';
+
+    modeBox.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return;
+      mode=b.getAttribute('data-m'); [].forEach.call(modeBox.children,function(x){x.classList.toggle('on',x===b);}); draw(); });
+    srcBox.addEventListener('click', function(e){ var b=e.target.closest('button'); if(!b) return;
+      source=b.getAttribute('data-s'); [].forEach.call(srcBox.children,function(x){x.classList.toggle('on',x===b);});
+      if(source==='manual'){ playing=false; play.textContent='▶ Пуск'; } draw(); });
+
+    function rawLevel(){
+      if(source==='manual') return +man.value;
+      var i=Math.min(N-1, Math.max(0, Math.floor(headF)));
+      return N?STEPS[i].l:0;
+    }
+
+    function step(L, dt){
+      var a=+sm.value;
+      smL = a*smL + (1-a)*L;
+      var t=+thr.value, h=+hys.value, ang;
+      if(mode==='bin'){
+        var wasClosed=closed;
+        if(!closed && smL>=t) closed=true;
+        else if(closed && smL < t-h) closed=false;
+        if(closed!==wasClosed) flips++;
+        ang = closed?90:0;
+      } else {
+        ang = propAngle(smL);
+      }
+      return ang;
+    }
+
+    function draw(){
+      manv.textContent=man.value; thrv.textContent=thr.value; hysv.textContent=hys.value;
+      smv.textContent=fmt(+sm.value,2); spdv.textContent=spd.value;
+      var L=rawLevel();
+      var ang=step(L, 0);
+
+      var ctx=scope.getContext('2d'), W=scope.width, H=scope.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          accent=css('--accent'), warn=css('--warn'), ok=css('--ok');
+
+      // левая панель — клешня
+      var clawW=300, clawX=8, clawY=8, clawH=H-16;
+      ctx.strokeStyle=line; ctx.strokeRect(clawX, clawY, clawW, clawH);
+      drawClaw(ctx, clawX, clawY, clawW, clawH, ang, ok, accent,
+               'угол '+fmt(ang,0)+'°  ('+(ang>45?'закрыта':'открыта')+')');
+
+      // правая панель — уровень потока + порог
+      var pX=clawX+clawW+40, pW=W-pX-16, pY=20, pH=H-56;
+      ctx.strokeStyle=line; ctx.strokeRect(pX,pY,pW,pH);
+      function Y(v){ return pY+pH - v/100*pH; }
+      function X(t){ return pX + (TEND<=0?0:t/TEND*pW); }
+      // порог + гистерезис-зона
+      if(mode==='bin'){
+        var t0=+thr.value, h=+hys.value;
+        ctx.fillStyle=warn; ctx.globalAlpha=0.10; ctx.fillRect(pX, Y(t0), pW, Y(t0-h)-Y(t0)); ctx.globalAlpha=1;
+        ctx.strokeStyle=warn; ctx.setLineDash([5,4]); ctx.beginPath(); ctx.moveTo(pX,Y(t0)); ctx.lineTo(pX+pW,Y(t0)); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle=warn; ctx.font='11px sans-serif'; ctx.textAlign='left'; ctx.fillText('порог '+t0, pX+4, Y(t0)-4);
+      }
+      // кривая уровня из потока (вся — бледно; до головы — ярко)
+      ctx.strokeStyle=muted; ctx.globalAlpha=0.30; ctx.lineWidth=1.6; ctx.beginPath();
+      for(var i=0;i<N;i++){ var xx=X(STEPS[i].t), yy=Y(STEPS[i].l); (i===0)?ctx.moveTo(xx,yy):ctx.lineTo(xx,yy);} ctx.stroke(); ctx.globalAlpha=1;
+      var head=Math.min(N, Math.floor(headF)+1);
+      if(source==='stream'){
+        ctx.strokeStyle=accent; ctx.lineWidth=2; ctx.beginPath();
+        for(var i=0;i<head;i++){ var xx=X(STEPS[i].t), yy=Y(STEPS[i].l); (i===0)?ctx.moveTo(xx,yy):ctx.lineTo(xx,yy);} ctx.stroke();
+        var hi=Math.min(N-1,Math.floor(headF)); var hx=X(STEPS[hi].t);
+        ctx.strokeStyle=ink; ctx.lineWidth=1.3; ctx.beginPath(); ctx.moveTo(hx,pY); ctx.lineTo(hx,pY+pH); ctx.stroke();
+      } else {
+        // ручной: горизонтальная линия текущего уровня
+        ctx.strokeStyle=accent; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(pX,Y(L)); ctx.lineTo(pX+pW,Y(L)); ctx.stroke();
+      }
+      // текущий сглаженный уровень — точка
+      ctx.fillStyle=ok; var curX=(source==='stream')?X(STEPS[Math.min(N-1,Math.floor(headF))].t):pX+pW*0.5;
+      ctx.beginPath(); ctx.arc(curX, Y(smL), 4, 0, Math.PI*2); ctx.fill();
+      // подписи осей
+      ctx.fillStyle=muted; ctx.font='11px sans-serif'; ctx.textAlign='right';
+      ctx.fillText('100', pX-4, Y(100)+4); ctx.fillText('0', pX-4, Y(0)+4);
+      ctx.textAlign='center'; ctx.fillText('время '+fmt(TEND,1)+' c', pX+pW/2, pY+pH+16);
+
+      out.className='readout ok';
+      var cmd = (mode==='bin') ? (closed?'ЗАКРЫТЬ':'ОТКРЫТЬ') : ('угол '+fmt(ang,0)+'°');
+      out.innerHTML='Режим: <b>'+(mode==='bin'?'бинарно':'пропорц.')+'</b>, источник: <b>'
+        +(source==='stream'?'поток':'ручной')+'</b>. Сырой $L$='+fmt(L,0)+', сглаж. '+fmt(smL,0)
+        +' → клешня: <span class="big">'+cmd+'</span>'
+        +(mode==='bin'?('. Переключений клешни за прогон: <b>'+flips+'</b> (сравни с числом реальных сжатий).'):
+          '. Угол плавно следует за силой.');
+      clock.textContent='t = '+fmt(source==='stream'?(N?STEPS[Math.min(N-1,Math.floor(headF))].t:0):0,2)+' c';
+    }
+
+    function frame(ts){
+      if(!playing) return;
+      if(lastTs==null) lastTs=ts;
+      var dt=(ts-lastTs)/1000; lastTs=ts;
+      headF += dt*(+spd.value);
+      if(headF>=N-1){ headF=N-1; playing=false; play.textContent='▶ Пуск'; }
+      draw();
+      if(playing) requestAnimationFrame(frame);
+    }
+    play.addEventListener('click', function(){
+      if(source!=='stream'){ return; }
+      if(playing){ playing=false; play.textContent='▶ Пуск'; return; }
+      if(headF>=N-1){ headF=0; smL=0; closed=false; flips=0; }
+      playing=true; lastTs=null; play.textContent='⏸ Пауза'; requestAnimationFrame(frame);
+    });
+    reset.addEventListener('click', function(){ playing=false; headF=0; smL=0; closed=false; flips=0; play.textContent='▶ Пуск'; draw(); });
+    [man,thr,hys,sm,spd].forEach(function(e){ e.addEventListener('input', function(){
+      // при смене порога/гистерезиса не сбрасываем flips, но пересчитаем состояние аккуратно
+      draw(); }); });
+
+    draw();
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+  })();
+
+  // ---------- Виджет 2: задача Фиттса / TAC ----------
+  (function(){
+    var scope=document.getElementById('w2_scope'); if(!scope) return;
+    var Lel=document.getElementById('w2_L'), Wel=document.getElementById('w2_W'),
+        Lv=document.getElementById('w2_Lv'), Wv=document.getElementById('w2_Wv'),
+        out=document.getElementById('w2_out'), modeBox=document.getElementById('w2_mode'),
+        newBtn=document.getElementById('w2_new');
+    var mode='bin';
+    // цель по УГЛУ (0..90). Детерминированные центры «случайных» целей.
+    var CENTERS=[45,30,60,38,52,25,68]; var ci=0;
+    var targetC=CENTERS[0];
+    var HOLD_MS=600;                     // сколько удержать в цели
+    var inSince=null, tStart=null, done=false, doneT=0;
+
+    modeBox.addEventListener('click',function(e){var b=e.target.closest('button'); if(!b)return;
+      mode=b.getAttribute('data-m'); [].forEach.call(modeBox.children,function(x){x.classList.toggle('on',x===b);}); resetTrial(); });
+    newBtn.addEventListener('click', function(){ ci=(ci+1)%CENTERS.length; targetC=CENTERS[ci]; resetTrial(); });
+    function resetTrial(){ inSince=null; tStart=null; done=false; doneT=0; draw(); }
+
+    function curAngle(){ var L=+Lel.value; return (mode==='bin') ? (L>=50?90:0) : propAngle(L); }
+
+    function draw(){
+      Lv.textContent=Lel.value; Wv.textContent=Wel.value+'°';
+      var Wd=+Wel.value, ang=curAngle();
+      var now=performance.now();
+      var lo=targetC-Wd/2, hi=targetC+Wd/2;
+      var inside=(ang>=lo && ang<=hi);
+      if(tStart==null && (+Lel.value>0)) tStart=now;     // старт по первому усилию
+      if(!done){
+        if(inside){ if(inSince==null) inSince=now; if(now-inSince>=HOLD_MS){ done=true; doneT=(now-(tStart||now))/1000; } }
+        else inSince=null;
+      }
+
+      var ctx=scope.getContext('2d'), W=scope.width, H=scope.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          accent=css('--accent'), ok=css('--ok'), warn=css('--warn');
+      // клешня слева
+      var clawW=180, clawH=H-16;
+      ctx.strokeStyle=line; ctx.strokeRect(6,8,clawW,clawH);
+      drawClaw(ctx,6,8,clawW,clawH,ang,ok,accent,'угол '+fmt(ang,0)+'°');
+      // шкала раскрытия справа (0..90 по горизонтали)
+      var sX=clawW+40, sW=W-sX-16, sY=H*0.5-16, sH=32;
+      function A2X(a){ return sX + a/90*sW; }
+      ctx.strokeStyle=line; ctx.strokeRect(sX,sY,sW,sH);
+      // цель
+      ctx.fillStyle=ok; ctx.globalAlpha=inside?0.45:0.28; ctx.fillRect(A2X(lo),sY,A2X(hi)-A2X(lo),sH); ctx.globalAlpha=1;
+      ctx.strokeStyle=ok; ctx.strokeRect(A2X(lo),sY,A2X(hi)-A2X(lo),sH);
+      // текущее положение
+      ctx.strokeStyle=inside?ok:accent; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(A2X(ang),sY-8); ctx.lineTo(A2X(ang),sY+sH+8); ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='11px sans-serif'; ctx.textAlign='center';
+      ctx.fillText('0° (открыта)',sX,sY+sH+20); ctx.fillText('90° (закрыта)',sX+sW,sY+sH+20);
+      ctx.fillText('цель '+fmt(targetC,0)+'° ±'+fmt(Wd/2,0)+'°',(A2X(lo)+A2X(hi))/2, sY-12);
+
+      // индекс сложности: D = расстояние от «старта» (0°) до центра цели
+      var D=Math.abs(targetC-0)||1;
+      var ID=Math.log(2*D/Wd)/Math.log(2);
+      out.className='readout '+(done?'ok':'bad');
+      var status = done ? ('<span class="big" style="color:'+ok+'">ПОПАЛ! время '+fmt(doneT,2)+' c</span>')
+                        : (inside?('в цели, удержи… '+fmt(Math.max(0,(HOLD_MS-(now-(inSince||now)))/1000),1)+' c')
+                                 :'веди клешню в зелёную цель');
+      out.innerHTML='Режим: <b>'+(mode==='bin'?'бинарно (только 0°/90°)':'пропорц.')+'</b>. '
+        +'Цель '+fmt(targetC,0)+'°, ширина $W$='+Wd+'°, расстояние $D$='+fmt(D,0)+'°. '
+        +'Индекс сложности $ID=\\log_2(2D/W)$ ≈ <b>'+fmt(ID,1)+'</b> бит. '+status
+        +(mode==='bin'&&(lo>0&&hi<90)?' <b style="color:'+warn+'">Цель посередине — бинарным не попасть.</b>':'');
+    }
+    // тикаем анимацию для отсчёта удержания
+    function tick(){ draw(); requestAnimationFrame(tick); }
+    Lel.addEventListener('input', function(){ if(done) resetTrial(); });
+    Wel.addEventListener('input', function(){ resetTrial(); });
+    requestAnimationFrame(tick);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+  })();
+
+  // ---------- иллюстрация «маппинг уровень→угол»: ступенька vs прямая ----------
+  (function(){
+    var Lel=document.getElementById('d_L'); if(!Lel) return;
+    var thr=document.getElementById('d_thr'),
+        Lv=document.getElementById('d_Lv'), thrv=document.getElementById('d_thrv'),
+        out=document.getElementById('d_out'), c=document.getElementById('d_map');
+    function draw(){
+      var L=+Lel.value, t=+thr.value; Lv.textContent=L; thrv.textContent=t;
+      var ctx=c.getContext('2d'), W=c.width, H=c.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), muted=css('--muted'), ink=css('--ink'),
+          accent=css('--accent'), warn=css('--warn');
+      var padL=48, padR=16, padT=14, padB=30, pw=W-padL-padR, ph=H-padT-padB;
+      function X(l){ return padL + l/100*pw; }
+      function Y(a){ return padT+ph - a/90*ph; }
+      // оси
+      ctx.strokeStyle=line; ctx.strokeRect(padL,padT,pw,ph);
+      ctx.fillStyle=muted; ctx.font='12px sans-serif';
+      ctx.textAlign='right'; ctx.fillText('90°',padL-6,Y(90)+4); ctx.fillText('0°',padL-6,Y(0)+4);
+      ctx.textAlign='center'; ctx.fillText('уровень L →',padL+pw/2,H-8);
+      ctx.save(); ctx.translate(14,padT+ph/2); ctx.rotate(-Math.PI/2); ctx.fillText('угол θ',0,0); ctx.restore();
+      // пропорц. прямая
+      ctx.strokeStyle=accent; ctx.lineWidth=2.4; ctx.beginPath(); ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(100),Y(90)); ctx.stroke();
+      // бинарная ступенька
+      ctx.strokeStyle=warn; ctx.lineWidth=2.4; ctx.beginPath();
+      ctx.moveTo(X(0),Y(0)); ctx.lineTo(X(t),Y(0)); ctx.lineTo(X(t),Y(90)); ctx.lineTo(X(100),Y(90)); ctx.stroke();
+      // порог
+      ctx.strokeStyle=muted; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(X(t),padT); ctx.lineTo(X(t),padT+ph); ctx.stroke(); ctx.setLineDash([]);
+      // текущая точка на обеих кривых
+      var aProp=propAngle(L), aBin=(L>=t?90:0);
+      ctx.fillStyle=accent; ctx.beginPath(); ctx.arc(X(L),Y(aProp),5,0,Math.PI*2); ctx.fill();
+      ctx.fillStyle=warn; ctx.beginPath(); ctx.arc(X(L),Y(aBin),5,0,Math.PI*2); ctx.fill();
+
+      out.className='readout ok';
+      out.innerHTML='При $L$='+L+': пропорц. → угол <b style="color:'+accent+'">'+fmt(aProp,0)+'°</b>'
+        +' (θ = '+L+'/100·90°); бинарно (порог '+t+') → <b style="color:'+warn+'">'+(aBin?'90° (закрыть)':'0° (открыть)')+'</b>. '
+        +'Прямая даёт любой промежуточный угол, ступенька — только два.';
+    }
+    Lel.addEventListener('input',draw); thr.addEventListener('input',draw);
+    draw();
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); draw(); };
+  })();
+</script>
+
+</body>
+</html>

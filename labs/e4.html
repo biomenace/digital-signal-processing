@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E4 — Окна и амплитуда: насколько сильно напряжена мышца </title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:22px; height:0; border-top-width:3px; border-top-style:solid; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 160px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl input[type=checkbox]{width:18px; height:18px; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 78px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E4</span>
+  <h1>Окна и амплитуда — насколько сильно напряжена мышца</h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема, один интерактивный пример</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> сырой ЭМГ-сигнал похож на шум, который «раздувается», когда мышца
+    напрягается. Само значение прыгает плюс-минус вокруг нуля — по нему силу не измерить. Нужна
+    <b>амплитуда</b> — насколько сильно сигнал дрожит <b>прямо сейчас</b>. Её считают в
+    <span class="term" data-tip="Окно: короткий кусок сигнала (последние W отсчётов), по которому считаем одну величину — например амплитуду. Потом окно сдвигаем дальше.">скользящем окне</span>.
+  </p>
+  <p style="margin-bottom:0">
+    Это ключевой шаг к <b>пропорциональному управлению</b>: амплитуда 0–100% → насколько открыть
+    клешню. Цель — понять, что такое
+    <span class="term" data-tip="RMS (среднеквадратичное) — корень из среднего квадратов сигнала в окне. Показывает «типичный размах» колебаний, то есть амплитуду.">RMS</span> /
+    <span class="term" data-tip="Огибающая: плавная кривая, повторяющая, как меняется амплитуда сигнала во времени (форму сокращения).">огибающая</span>,
+    и почувствовать главный компромисс: <b>длинное окно</b> — гладко, но с
+    <span class="term" data-tip="Задержка (latency): на сколько оценка амплитуды отстаёт от реального сокращения. В протезе это лаг отклика.">задержкой</span>;
+    <b>короткое окно</b> — быстро, но дёргано.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">Амплитуду в окне из $W$ последних отсчётов измеряют через <b>RMS</b>
+  (среднеквадратичное значение):</p>
+  \[ \mathrm{RMS}[n]=\sqrt{\frac{1}{W}\sum_{k=n-W+1}^{n} x[k]^2}. \]
+  <p style="margin-bottom:0">Считаем RMS в каждом положении окна — получается плавная
+  <b>огибающая</b>, повторяющая форму сокращения. Две ручки:</p>
+  <ul style="margin-bottom:0">
+    <li><b>длина окна $W$</b> — компромисс «гладко ↔ быстро» (и задержка);</li>
+    <li><b>шаг (hop)</b> — как часто выдавать новое значение (реже = дешевле, но грубее).</li>
+  </ul>
+</div>
+
+<!-- ============ КАК/ПОЧЕМУ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему RMS даёт амплитуду — и откуда берётся задержка<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Сигнал болтается вокруг нуля: его среднее ≈ 0 и про силу ничего не
+    говорит (плюсы гасят минусы). Фокус в том, чтобы сначала <b>возвести в квадрат</b> — тогда и
+    плюсы, и минусы становятся положительными, а большие размахи дают особенно большой вклад.
+    Усреднили квадраты по окну, взяли корень (чтобы вернуть исходные единицы) — вот и «типичный
+    размах», то есть амплитуда. Это и есть RMS.</p>
+
+    <h3 style="margin-top:10px">Идея 1: окно едет по сигналу и строит огибающую</h3>
+    <p style="margin-top:2px">Берём короткое окно последних $W$ отсчётов, считаем в нём RMS —
+    получаем <b>одну точку</b> амплитуды. Сдвигаем окно дальше — следующую точку. Точки
+    складываются в плавную огибающую, повторяющую сокращение:</p>
+    <canvas id="d_slide" class="scope" width="840" height="200"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ <span style="color:var(--muted)">серый</span> — сырой
+      сигнал, полупрозрачная рамка — окно, <span style="color:var(--accent)">синяя</span> точка/кривая —
+      RMS в окне (амплитуда). Окно едет — кривая рисуется.</div>
+
+    <h3>Идея 2: почему появляется задержка</h3>
+    <p style="margin-top:2px">В реальном времени окно смотрит только <b>назад</b> (на последние $W$
+    отсчётов). Пока сокращение только началось, в окне ещё много «тихих» старых отсчётов — оценка
+    растёт <b>с опозданием</b> примерно на <b>полокна</b>, $\approx W/2$. Чем длиннее окно, тем
+    глаже кривая, но тем больше лаг. Офлайн можно центрировать окно (заглянуть и вперёд) — тогда
+    задержки нет, но в живом протезе будущего нет.</p>
+
+    <div class="formula-ex">
+      <b>Пример.</b> $F_д=500$ Гц, окно $W=100$ отсчётов $=200$ мс.<br>
+      Каузально (онлайн): задержка $\approx W/2 = 50$ отсчётов $=100$ мс — заметный лаг.<br>
+      Возьмём $W=25$ (50 мс): лаг $\approx 25$ мс — быстрее, но огибающая заметно «дёрганее».
+    </div>
+
+    <h3>Компромисс «гладко ↔ быстро» — глазами</h3>
+    <p style="margin-top:2px">Короткое окно (дёргано, но быстро) против длинного (гладко, но с
+    лагом), на одном и том же сигнале:</p>
+    <canvas id="d_tradeoff" class="scope" width="840" height="180"></canvas>
+    <div class="legend" style="margin-bottom:4px">
+      <span><span class="sw" style="border-color:var(--muted)"></span>сырой сигнал</span>
+      <span><span class="sw" style="border-color:var(--warn)"></span>короткое окно</span>
+      <span><span class="sw" style="border-color:var(--accent)"></span>длинное окно</span>
+      <span><span class="sw" style="border-color:var(--ok); border-top-style:dashed"></span>истинная огибающая</span>
+    </div>
+  </div>
+</details>
+
+<!-- ============ ВИДЖЕТ ============ -->
+<div class="lab">
+  <h3>Пример · Измерь силу сокращения</h3>
+  <p style="margin-top:2px">Сырой ЭМГ (частота дискретизации $F_д=500$ Гц): шум, амплитуда которого
+  растёт при двух сокращениях. Подбери окно и шаг так, чтобы оценка амплитуды (огибающая) была и
+  гладкой, и без большого лага. Тумблер — каузально (онлайн, с задержкой) или центрированно
+  (офлайн, без задержки).</p>
+  <canvas id="w_time" class="scope" width="840" height="230"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--muted)"></span>сырой сигнал</span>
+    <span><span class="sw" style="border-color:var(--ok); border-top-style:dashed"></span>истинная огибающая</span>
+    <span><span class="sw" style="border-color:var(--accent)"></span>оценка RMS (твоя)</span>
+    <span>● точки через шаг (hop)</span>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Длина окна в миллисекундах: сколько последних отсчётов усредняем. Больше = глаже, но медленнее (больше задержка).">Окно $W$</span></label><input type="range" id="w_win" min="10" max="400" step="5" value="60"><span class="val" id="w_winv">60 мс</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Шаг (hop): через сколько мс выдаём новое значение амплитуды. Большой шаг = меньше точек = грубее и дешевле.">Шаг (hop)</span></label><input type="range" id="w_hop" min="5" max="200" step="5" value="20"><span class="val" id="w_hopv">20 мс</span></div>
+    <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Каузально = окно смотрит только назад (как в живом протезе), есть задержка. Выкл = центрированное окно (офлайн), задержки нет.">Каузально (онлайн)</span></label><input type="checkbox" id="w_causal" checked><span class="val" id="w_causalv" style="flex:1;text-align:left">вкл</span></div>
+  </div>
+  <div class="readout ok" id="w_out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Поставь совсем короткое окно ($W=10$ мс). Огибающая «дёрганая»? Увеличивай $W$ — при
+          каком значении она становится гладкой, но ещё повторяет оба сокращения?</li>
+      <li>Включи <b>каузально</b> и увеличивай $W$ — увидь, как оценка <b>отстаёт</b> от истинной
+          огибающей. Выключи (центрированно) — лаг исчез. Оцени задержку при $W=200$ мс.</li>
+      <li>Увеличивай <b>шаг</b>. При каком hop точек становится так мало, что форма сокращения
+          теряется?</li>
+      <li>Найди компромисс: «отзывчиво, но стабильно» — гладко, малый лаг, хватает точек. Запиши
+          свои $W$ и hop.</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Сигнал тот же (два сокращения). Для своего варианта подбери параметры и
+  <b>запиши в отчёт</b>: значения $W$ и hop; задержку (для каузального режима $\approx W/2$);
+  насколько гладкой/дёрганой вышла огибающая; и <b>почему</b> выбрал именно так.</p>
+
+  <h3 style="margin-top:6px">Часть А · одна цель</h3>
+  <table>
+    <tr><th>Вариант</th><th>Цель</th><th>Что записать</th></tr>
+    <tr><td>1</td><td>максимально гладкая огибающая (лаг неважен)</td><td>$W$; чему равна задержка $\approx W/2$ (в мс)</td></tr>
+    <tr><td>2</td><td>минимальная задержка (пусть будет дёргано)</td><td>$W$; во сколько раз огибающая «шумнее», чем в вар. 1</td></tr>
+    <tr><td>3</td><td>измерить пик силы обоих сокращений</td><td>$W$; значения двух пиков огибающей (в отн. ед.)</td></tr>
+  </table>
+
+  <h3>Часть Б · составная цель (окно + шаг + режим)</h3>
+  <table>
+    <tr><th>Вариант</th><th>Задача</th><th>Что записать</th></tr>
+    <tr><td>4</td><td>«отзывчивый протез»: гладко, лаг ≤ 60 мс, каузально</td><td>$W$, hop, режим; итоговая задержка</td></tr>
+    <tr><td>5</td><td>тот же сигнал офлайн: гладко и <b>без</b> задержки</td><td>$W$, hop, режим (центрированный); чем офлайн лучше и почему нельзя так в живом протезе</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Подсказка: задержка каузального окна ≈ $W/2$; переведи
+  отсчёты в мс через $F_д=500$ Гц (1 отсчёт = 2 мс).</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Само значение ЭМГ прыгает вокруг нуля; силу даёт <b>амплитуда</b> (RMS в окне).</li>
+    <li><b>RMS</b> = корень из среднего квадратов: квадрат убирает знак, большие размахи весомее.</li>
+    <li>Скользящее окно строит <b>огибающую</b> — плавную форму сокращения (0–100% → управление).</li>
+    <li>Главный компромисс: длинное окно — гладко, но с <b>задержкой</b> $\approx W/2$; короткое — быстро, но дёргано.</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик вперёд.</b> Эта огибающая — вход для
+  <b>пропорционального</b> управления клешнёй (часть 3). А нарезка сигнала на окна (framing) —
+  основа для признаков и классификации жестов в <b>E6</b>.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Почему по сырому ЭМГ нельзя измерить силу напрямую? Зачем возводить в квадрат?</li>
+      <li>Что такое RMS и огибающая? Запиши формулу RMS в окне.</li>
+      <li>Как длина окна влияет на гладкость и на задержку? Чему равна задержка каузального окна?</li>
+      <li>Чем отличаются каузальное и центрированное окно? Где какое применимо?</li>
+      <li>Что такое шаг (hop) и на что он влияет?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный скрипт <code>solution.py</code> строит тот же сигнал и
+    считает скользящий RMS (каузально и центрированно) через свёртку/накопительную сумму, рисует
+    сырой сигнал, истинную огибающую и оценку. Запуск из <code>dsp/</code>: <kbd>./run.sh E4</kbd>.
+    Для работы он не нужен — всё важное есть в примере выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 · дальше: E5 — качество сигнала и артефакты (годен ли канал)
+</p>
+
+</div>
+
+<script>
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  // ---------- общая модель сигнала + RMS ----------
+  (function(){
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function fmt(x){ return (Math.round(x*10)/10).toString().replace('.', ','); }
+    var Fs=500, N=1500;                                  // 3 секунды
+    // истинная огибающая: покой + два сокращения (raised-cosine)
+    function bump(t,c,w,A){ var d=(t-c)/w; return Math.abs(d)<1?A*0.5*(1+Math.cos(Math.PI*d)):0; }
+    function envAt(t){ return 0.07 + bump(t,0.8,0.45,1.0) + bump(t,2.05,0.5,0.6); }
+    // фиксированный «несущий» шум мышцы
+    var carrier=[], seed=13572468;
+    for(var i=0;i<N;i++){ seed=(seed*1103515245+12345)&0x7fffffff; carrier.push((seed/0x7fffffff)*2-1); }
+    var trueEnv=[], raw=[];
+    for(var n=0;n<N;n++){ var t=n/Fs, e=envAt(t); trueEnv.push(e); raw.push(e*carrier[n]); }
+    // калибровка: RMS(carrier) ≈ этот множитель, делим на него, чтобы оценка совпала с огибающей
+    var cr=0; for(var m=0;m<N;m++) cr+=carrier[m]*carrier[m]; cr=Math.sqrt(cr/N);
+    // накопительная сумма квадратов для быстрого RMS
+    var cum=[0]; for(var q=0;q<N;q++) cum.push(cum[q]+raw[q]*raw[q]);
+    function rmsAt(n, W, causal){
+      var lo, hi; if(causal){ hi=n; lo=Math.max(0,n-W+1); } else { var h=Math.floor(W/2); lo=Math.max(0,n-h); hi=Math.min(N-1,n+h); }
+      var cnt=hi-lo+1, ss=cum[hi+1]-cum[lo];
+      return Math.sqrt(ss/cnt)/cr;                       // калиброванная амплитуда
+    }
+    window.__E4={ css:css, fmt:fmt, Fs:Fs, N:N, raw:raw, trueEnv:trueEnv, rmsAt:rmsAt };
+  })();
+
+  // ---------- иллюстрации к блоку «почему» ----------
+  (function(){
+    var E=window.__E4, css=E.css;
+    var cS=document.getElementById('d_slide'), cT=document.getElementById('d_tradeoff');
+    if(!cS||!cT) return;
+
+    // — окно едет и строит огибающую (анимация)
+    var pos=0, Wd=Math.round(0.06*E.Fs);                 // окно 60 мс
+    function drawSlide(){
+      var ctx=cS.getContext('2d'),W=cS.width,H=cS.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),muted=css('--muted'),accent=css('--accent'),soft=css('--accent-soft');
+      var pad=20,y0=H*0.5,i;
+      var amax=1.15;
+      function X(i){return pad+(i/(E.N-1))*(W-2*pad);} function Y(v){return y0-(v/amax)*(H*0.42);}
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      // сырой
+      ctx.strokeStyle=muted;ctx.lineWidth=1;ctx.globalAlpha=0.6;ctx.beginPath();
+      for(i=0;i<E.N;i+=2){ var x=X(i),y=Y(E.raw[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();ctx.globalAlpha=1;
+      // окно
+      var lo=Math.max(0,pos-Wd+1), xL=X(lo), xR=X(pos);
+      ctx.fillStyle=soft;ctx.globalAlpha=0.7;ctx.fillRect(xL,Y(amax),Math.max(xR-xL,2),H*0.84);ctx.globalAlpha=1;
+      // огибающая до pos
+      ctx.strokeStyle=accent;ctx.lineWidth=2.2;ctx.beginPath();var st=false;
+      for(i=0;i<=pos;i+=3){ var xx=X(i),yy=Y(E.rmsAt(i,Wd,true)); st?ctx.lineTo(xx,yy):ctx.moveTo(xx,yy);st=true;}
+      if(st) ctx.stroke();
+      var yv=E.rmsAt(pos,Wd,true);
+      ctx.fillStyle=accent;ctx.beginPath();ctx.arc(X(pos),Y(yv),4,0,2*Math.PI);ctx.fill();
+    }
+
+    // — компромисс короткое/длинное (статично)
+    function drawTradeoff(){
+      var ctx=cT.getContext('2d'),W=cT.width,H=cT.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),muted=css('--muted'),accent=css('--accent'),warn=css('--warn'),ok=css('--ok');
+      var pad=20,y0=H*0.5,i, amax=1.15;
+      function X(i){return pad+(i/(E.N-1))*(W-2*pad);} function Y(v){return y0-(v/amax)*(H*0.42);}
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      ctx.strokeStyle=muted;ctx.lineWidth=1;ctx.globalAlpha=0.45;ctx.beginPath();
+      for(i=0;i<E.N;i+=2){ var x=X(i),y=Y(E.raw[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();ctx.globalAlpha=1;
+      // истинная огибающая
+      ctx.strokeStyle=ok;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();
+      for(i=0;i<E.N;i+=3){ var xt=X(i),yt=Y(E.trueEnv[i]); i?ctx.lineTo(xt,yt):ctx.moveTo(xt,yt);} ctx.stroke();ctx.setLineDash([]);
+      // короткое окно (20 мс), каузально
+      var Wsh=Math.round(0.02*E.Fs);
+      ctx.strokeStyle=warn;ctx.lineWidth=1.6;ctx.beginPath();
+      for(i=0;i<E.N;i+=2){ var xs=X(i),ys=Y(E.rmsAt(i,Wsh,true)); i?ctx.lineTo(xs,ys):ctx.moveTo(xs,ys);} ctx.stroke();
+      // длинное окно (200 мс), каузально
+      var Wlo=Math.round(0.2*E.Fs);
+      ctx.strokeStyle=accent;ctx.lineWidth=2.2;ctx.beginPath();
+      for(i=0;i<E.N;i+=3){ var xl=X(i),yl=Y(E.rmsAt(i,Wlo,true)); i?ctx.lineTo(xl,yl):ctx.moveTo(xl,yl);} ctx.stroke();
+    }
+
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); drawTradeoff(); };
+    drawTradeoff();
+    function frame(){ pos+=8; if(pos>=E.N) pos=0; drawSlide(); requestAnimationFrame(frame); }
+    requestAnimationFrame(frame);
+  })();
+
+  // ---------- основной виджет ----------
+  (function(){
+    var E=window.__E4, css=E.css, fmt=E.fmt;
+    var win=document.getElementById('w_win'), hop=document.getElementById('w_hop'), ca=document.getElementById('w_causal');
+    if(!win) return;
+    var winv=document.getElementById('w_winv'), hopv=document.getElementById('w_hopv'), cav=document.getElementById('w_causalv');
+    var out=document.getElementById('w_out'), cTime=document.getElementById('w_time');
+
+    function draw(Wms, hopMs, causal){
+      var ctx=cTime.getContext('2d'),W=cTime.width,H=cTime.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),muted=css('--muted'),accent=css('--accent'),ok=css('--ok'),i;
+      var pad=22,y0=H*0.52, amax=1.2;
+      function X(i){return pad+(i/(E.N-1))*(W-2*pad);} function Y(v){return y0-(v/amax)*(H*0.44);}
+      var Wn=Math.max(1,Math.round(Wms/1000*E.Fs));
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      // сырой
+      ctx.strokeStyle=muted;ctx.lineWidth=1;ctx.globalAlpha=0.5;ctx.beginPath();
+      for(i=0;i<E.N;i+=2){ var x=X(i),y=Y(E.raw[i]); i?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();ctx.globalAlpha=1;
+      // истинная огибающая
+      ctx.strokeStyle=ok;ctx.lineWidth=2;ctx.setLineDash([6,5]);ctx.beginPath();
+      for(i=0;i<E.N;i+=3){ var xt=X(i),yt=Y(E.trueEnv[i]); i?ctx.lineTo(xt,yt):ctx.moveTo(xt,yt);} ctx.stroke();ctx.setLineDash([]);
+      // оценка RMS (сплошная линия по всем n)
+      ctx.strokeStyle=accent;ctx.lineWidth=2.2;ctx.beginPath();
+      for(i=0;i<E.N;i+=2){ var xe=X(i),ye=Y(E.rmsAt(i,Wn,causal)); i?ctx.lineTo(xe,ye):ctx.moveTo(xe,ye);} ctx.stroke();
+      // точки через hop
+      var hopN=Math.max(1,Math.round(hopMs/1000*E.Fs));
+      ctx.fillStyle=accent;
+      for(i=0;i<E.N;i+=hopN){ var xd=X(i),yd=Y(E.rmsAt(i,Wn,causal)); ctx.beginPath();ctx.arc(xd,yd,2.8,0,2*Math.PI);ctx.fill(); }
+      return Wn;
+    }
+
+    function update(){
+      var Wms=+win.value, hopMs=+hop.value, causal=ca.checked;
+      winv.textContent=Wms+' мс'; hopv.textContent=hopMs+' мс'; cav.textContent=causal?'вкл':'выкл';
+      var Wn=draw(Wms,hopMs,causal);
+      var lagMs = causal ? Math.round(Wn/2/E.Fs*1000) : 0;
+      // грубая оценка «дёрганости»: разброс оценки минус истинная на участке покоя
+      var smooth = Wms>=40;
+      out.className = (lagMs<=60 && Wms>=40) ? 'readout ok' : 'readout';
+      out.innerHTML = 'Окно <span class="big">'+Wms+' мс</span> ('+Wn+' отсч.), шаг '+hopMs+' мс, '+
+        (causal?'каузально':'центрировано')+'. Задержка ≈ <span class="big">'+lagMs+' мс</span>. '+
+        (smooth?'Огибающая гладкая':'Огибающая дёрганая')+
+        (causal? (lagMs>60?' — лаг великоват для протеза.':' — отзывчиво.') : ' — офлайн, без лага.');
+    }
+    [win,hop].forEach(function(el){ el.addEventListener('input', update); });
+    ca.addEventListener('change', update);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); update(); };
+    update();
+  })();
+</script>
+
+</body>
+</html>

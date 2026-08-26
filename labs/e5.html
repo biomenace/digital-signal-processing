@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E5 — Качество сигнала и артефакты </title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{
+    position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600;
+    box-shadow:var(--shadow); transition:transform .15s;
+  }
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{
+    background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);
+  }
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .warn{border-left:4px solid var(--warn); background:var(--warn-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px;
+    font-family:"SF Mono",Menlo,Consolas,monospace;}
+  pre{background:var(--code-bg); color:var(--code-ink); padding:15px 17px; border-radius:12px; overflow-x:auto; font-size:14px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  /* ---------- интерактивные виджеты ---------- */
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px; display:flex; gap:16px; flex-wrap:wrap;}
+  .legend b{font-weight:600;}
+  .sw{display:inline-block; width:22px; height:0; border-top-width:3px; border-top-style:solid; vertical-align:middle; margin-right:5px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 70px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  /* тумблеры артефактов */
+  .toggles{display:flex; flex-wrap:wrap; gap:8px 10px; margin:8px 0 4px;}
+  .tg{display:flex; align-items:center; gap:7px; background:var(--chip); border:1px solid var(--line);
+    border-radius:9px; padding:6px 11px; font-size:14px; cursor:pointer; user-select:none;}
+  .tg input{accent-color:var(--accent); cursor:pointer;}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E5</span>
+  <h1>Качество сигнала и артефакты </h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема: как заметить и отбраковать плохой канал</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> прежде чем что-то считать по сигналу мышцы, надо понять — <b>годится
+    ли он вообще</b>. Живой электрод ловит не только мышцу: усилитель <span class="term"
+    data-tip="Клиппинг (насыщение): сигнал упёрся в потолок АЦП и вершины срезались в плоские полки.">зашкаливает</span>,
+    кабель <span class="term" data-tip="Артефакт движения: рывок кабеля или сдвиг электрода даёт большой медленный (низкочастотный) выброс поверх ЭМГ.">дёргается</span>,
+    электрод <span class="term" data-tip="Отрыв электрода: контакт с кожей потерян, провод работает как антенна и ловит наводку сети 50 Гц (или даёт мёртвый ноль).">отходит</span>. Декодер,
+    накормленный мусором, — <b>провал №1 на живом человеке</b>: красивая на графике модель врёт
+    вживую именно из-за грязного сигнала.
+  </p>
+  <p style="margin-bottom:0">
+    Ниже — <b>один живой канал, которому можно включать «болячки» галочками</b> и крутить
+    уровень шума. Цель работы — <b>не запустить код</b>, а понять четыре вещи:
+    как каждый артефакт выглядит <b>во времени и в спектре</b>, что такое
+    <span class="term" data-tip="SNR (signal-to-noise ratio): во сколько раз активность (сокращение) громче покоя (шума). Считается в децибелах.">SNR</span>,
+    и как из трёх-четырёх простых чисел собрать <b>авто-вердикт «канал годен / брак»</b>.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">У чистой поверхностной ЭМГ вся энергия сидит в полосе примерно
+  <b>20–450 Гц</b>. Любой артефакт нарушает это по-своему — и именно по «нарушению» его
+  и ловят:</p>
+  <ul style="margin:6px 0">
+    <li><b>Клиппинг</b> — вершины срезаны в плоские полки → в спектре лезут <b>ложные
+        гармоники</b> выше полосы. Признак: доля отсчётов «на потолке».</li>
+    <li><b>Motion</b> (рывок) — большой <b>медленный</b> горб → энергия проваливается
+        <b>ниже 20 Гц</b>, где ЭМГ быть не должно.</li>
+    <li><b>Отрыв электрода</b> — вместо шумоподобной «пачки» либо чистые <b>50 Гц</b>
+        (наводка сети), либо «мёртвый» ноль. Признак: пик на 50 Гц / очень малое
+        <span class="term" data-tip="СКО (сигма, стандартное отклонение) — мера разброса сигнала вокруг среднего. Почти ноль → сигнала нет.">СКО $\sigma$</span>.</li>
+  </ul>
+  <p style="margin-bottom:0"><b>SNR</b> — отношение силы активности к силе покоя, в децибелах:</p>
+  \[ \mathrm{SNR}_{\text{дБ}} = 20\,\log_{10}\!\frac{\mathrm{RMS}_{\text{актив}}}{\mathrm{RMS}_{\text{покой}}}. \]
+  <div class="warn" style="margin-bottom:0"><b>Правило годности.</b> Канал считаем <b>браком</b>,
+  если сработало хоть одно: клиппинг (много отсчётов на потолке), нет сигнала (маленькое $\sigma$),
+  доминирует наводка 50 Гц, или слишком много энергии ниже 20 Гц (motion). Иначе — <b>годен</b>.
+  Именно это и нужно проверить в виджете ниже.</div>
+</div>
+
+<!-- ============ ГЛАВНЫЙ ВИДЖЕТ ============ -->
+<div class="lab">
+  <h3>Живой канал · включай «болячки» и смотри вердикт</h3>
+  <p style="margin-top:2px">Синяя «пачка» — сокращение мышцы (чистый ЭМГ). Включай
+  галочки — сигнал будет портиться, а ниже спектр покажет, <b>куда уехала энергия</b>.
+  В самом низу — авто-вердикт: годен канал или брак и почему.</p>
+  <div class="toggles">
+    <label class="tg"><input type="checkbox" id="a_clip"><span class="term" data-tip="Задрать усиление так, что вершины ЭМГ упрутся в потолок АЦП и срежутся.">Клиппинг</span></label>
+    <label class="tg"><input type="checkbox" id="a_motion"><span class="term" data-tip="Рывок кабеля/сдвиг электрода: большой медленный (низкочастотный) выброс.">Motion (рывок)</span></label>
+    <label class="tg"><input type="checkbox" id="a_mains"><span class="term" data-tip="Сетевая наводка 50 Гц — острый пик, особенно заметен при плохом контакте.">Наводка 50 Гц</span></label>
+    <label class="tg"><input type="checkbox" id="a_off"><span class="term" data-tip="Электрод отошёл от кожи: полезного ЭМГ нет, остаётся почти ноль (+ наводка, если включена).">Отрыв электрода</span></label>
+  </div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Сила сокращения — амплитуда полезного ЭМГ (высота синей пачки).">Сила $A$</span></label><input type="range" id="a_amp" min="0.1" max="1.2" step="0.05" value="0.9"><span class="val" id="a_ampv">0.90</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Уровень покоя (шум приборов и кожи). Чем выше — тем меньше SNR.">Шум покоя</span></label><input type="range" id="a_noise" min="0.01" max="0.5" step="0.01" value="0.04"><span class="val" id="a_noisev">0.04</span></div>
+  </div>
+  <canvas id="mn_sig" class="scope" width="840" height="210"></canvas>
+  <div class="legend">
+    <span><span class="sw" style="border-color:var(--accent)"></span><b>сигнал канала</b> (во времени)</span>
+    <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span>потолок АЦП ±1 (клиппинг)</span>
+  </div>
+  <canvas id="mn_spec" class="scope" width="840" height="200"></canvas>
+  <div class="legend">
+    <span>спектр: <b>где сидит энергия</b></span>
+    <span style="color:var(--ok)">зелёная зона</span> — полоса ЭМГ 20–450 Гц;
+    <span style="color:var(--warn)">оранжевая</span> — «запретные» зоны (НЧ &lt;20 и линия 50 Гц)
+  </div>
+  <div class="readout ok" id="mn_out"></div>
+  <div class="tasklist">
+    <b>Задания (щёлкай галочки, крути ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Включи только <b>Клиппинг</b> и подними «Силу» до упора. Смотри спектр: откуда взялись
+          пики <b>выше 450 Гц</b>, которых в чистом ЭМГ не было?</li>
+      <li>Включи только <b>Motion</b>. В какой части спектра вырос столб энергии? Сравни с полосой ЭМГ.</li>
+      <li>Включи <b>Отрыв</b> + <b>Наводку 50 Гц</b> — так выглядит отошедший электрод. Какой признак
+          в вердикте сработал?</li>
+      <li>Выключи все болячки. Медленно поднимай <b>«Шум покоя»</b>: при каком значении SNR падает
+          ниже ~10 дБ и канал становится сомнительным?</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ПОЧЕМУ ЭТО РАБОТАЕТ ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Почему каждый артефакт видно — и откуда берётся SNR<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">Механизм простой: у чистой ЭМГ энергия лежит <b>только</b> в полосе
+    20–450 Гц, а каждая «болячка» кладёт энергию туда, где её быть не должно, — или ломает форму
+    так, что спектр «расползается». Детектор просто спрашивает: «а нет ли энергии там, где не
+    надо?». Двигай <b>эти два ползунка</b> — обе картинки ниже покажут механизм клиппинга и SNR
+    на живых числах.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl"><label><span class="term" data-tip="Во сколько раз задрали усиление перед потолком АЦП. Больше 1/A уже режет вершины.">Усиление</span></label><input type="range" id="w_gain" min="0.5" max="4" step="0.1" value="2.5"><span class="val" id="w_gainv">2.5×</span></div>
+        <div class="ctrl"><label><span class="term" data-tip="Уровень покоя относительно активности — чем выше, тем меньше SNR.">Шум покоя</span></label><input type="range" id="w_rest" min="0.01" max="0.6" step="0.01" value="0.06"><span class="val" id="w_restv">0.06</span></div>
+      </div>
+      <div class="readout ok" id="w_out"></div>
+    </div>
+
+    <h3 style="margin-top:10px">Клиппинг: почему срезанная волна рождает гармоники</h3>
+    <p style="margin-top:2px">Задрали усиление — вершины упёрлись в «потолок» АЦП и стали
+    <b>плоскими полками</b>. А плоская полка — это уже не гладкий сигнал: чтобы «нарисовать» острый
+    угол на сломе, спектру приходится добавлять <b>новые высокие частоты</b> (гармоники). Чем сильнее
+    срез — тем выше и гуще ложные пики, вылезающие <b>за полосу</b> ЭМГ. Вот почему клиппинг видно
+    в спектре, даже если во времени «на глаз» кажется, что сигнал просто громкий.</p>
+    <canvas id="w_clip" class="scope" width="840" height="180"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ <span style="color:var(--muted)">серая</span> — усиленный
+      ЭМГ до потолка; <span style="color:var(--accent)">синяя</span> — что осталось после АЦП;
+      <span style="color:var(--warn)">оранжевые</span> линии — потолок ±1. Подними усиление — появятся полки.</div>
+
+    <h3>SNR: почему отношение, и почему в децибелах</h3>
+    <p style="margin-top:2px">«Хороший сигнал» — не тот, что <i>громкий</i>, а тот, где <b>активность
+    заметно выше покоя</b>. Поэтому берут <b>отношение</b>, а не разность: сигнал ×2 и шум ×2 — SNR
+    не изменился, и это правильно (мы просто добавили усиления). Меру «силы» колебания даёт
+    <span class="term" data-tip="RMS (root mean square) — корень из среднего квадрата: эффективная амплитуда сигнала.">RMS</span> —
+    корень из среднего квадрата:</p>
+    \[ \mathrm{RMS}(x)=\sqrt{\tfrac1N\textstyle\sum_n x_n^2},\qquad
+       r=\frac{\mathrm{RMS}_{\text{актив}}}{\mathrm{RMS}_{\text{покой}}}. \]
+    <p style="margin-top:2px">Отношение $r$ бывает и 2, и 2000 — неудобно. Логарифм сжимает этот
+    разбег в понятную шкалу, а множитель <b>20</b> — потому что RMS это <b>амплитуда</b>, а децибел
+    исходно про мощность ($\propto$ амплитуда$^2$): $10\log_{10}(r^2)=20\log_{10}(r)$. Отсюда:</p>
+    \[ \mathrm{SNR}_{\text{дБ}}=20\log_{10} r. \]
+    <p class="muted" style="margin-top:2px">Ориентиры: $r=2\Rightarrow 6$ дБ; $r=10\Rightarrow 20$ дБ;
+    $r=1$ (сигнал = шум) $\Rightarrow 0$ дБ. Годным для ЭМГ обычно считают $\gtrsim 10$ дБ.</p>
+    <canvas id="w_snr" class="scope" width="840" height="170"></canvas>
+    <div class="legend" style="margin-bottom:12px">↑ две полосы RMS: <span style="color:var(--ok)">активность</span>
+      и <span style="color:var(--warn)">покой</span>. Их отношение и есть SNR — крути «Шум покоя»
+      и смотри, как оценка ползёт вниз.</div>
+
+    <h3>Motion и наводка 50 Гц: энергия «не в той полосе»</h3>
+    <p style="margin-top:2px">Рывок кабеля — это большой <b>медленный</b> выброс (единицы Гц):
+    его энергия сваливается <b>ниже 20 Гц</b>. Наводка сети — ровно <b>50 Гц</b>: острый пик
+    внутри полосы, но узкий и стабильный. Оба случая детектор ловит одинаково просто —
+    считает <b>долю мощности</b> в «подозрительной» полосе относительно всей мощности:</p>
+    \[ \text{доля}_{\text{полоса}}=\frac{\sum_{f\in\text{полоса}} P(f)}{\sum_f P(f)}. \]
+    <p style="margin-top:2px">Для motion полоса — $[0,20]$ Гц; для наводки — $[49,51]$ Гц. Перевалила
+    за порог → поднимаем флаг. $P(f)$ — это <span class="term" data-tip="Спектр мощности: сколько энергии сигнала приходится на каждую частоту (квадрат амплитуды из ДПФ).">спектр мощности</span>
+    (квадрат амплитуды из ДПФ, как в E2).</p>
+
+    <hr style="border:none;border-top:1px solid var(--line);margin:16px 0">
+    <p><b>Итого, авто-детектор в 4 проверки:</b></p>
+    <ol style="margin-top:2px">
+      <li><b>Клиппинг:</b> доля отсчётов на потолке $>$ порога (напр. 2%).</li>
+      <li><b>Нет сигнала:</b> $\sigma$ (СКО) $<$ порога — электрод оторван/выключен.</li>
+      <li><b>Наводка:</b> доля мощности в $[49,51]$ Гц $>$ порога (напр. 40%).</li>
+      <li><b>Motion:</b> доля мощности ниже 20 Гц $>$ порога (напр. 30%).</li>
+    </ol>
+    <p style="margin-bottom:4px">Сработал хоть один — <b>БРАК</b> (и печатаем причину). Ни один —
+    <b>ГОДЕН</b>. Дёшево, быстро, работает в реальном времени.</p>
+
+    <div class="formula-ex">
+      <b>Пример (SNR).</b> Активность RMS $=0{,}30$, покой RMS $=0{,}03$.<br>
+      $r=0{,}30/0{,}03=10$; &nbsp; $\mathrm{SNR}=20\log_{10}10=\mathbf{20}$ дБ → отличный канал.<br>
+      А если покой подрос до $0{,}15$: $r=2$, $\mathrm{SNR}=6$ дБ → уже сомнительно.
+    </div>
+    <div class="formula-ex">
+      <b>Пример (клиппинг).</b> Усиление ×2.8, потолок ±1, пик чистого ЭМГ был ×2.8 &gt; 1 →
+      вершины срезаны, на потолке оказалось ~8% отсчётов &gt; порога 2% → флаг
+      <b>КЛИППИНГ</b>, и в спектре растут гармоники выше 450 Гц.
+    </div>
+  </div>
+</details>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Всё проверяется в <b>главном виджете</b> выше: выставь галочки/ползунки
+  своего варианта и <b>запиши в отчёт</b>, что показал вердикт и спектр. Числа считай по формулам
+  из блока <b>«📐 Почему это работает»</b> и сверяй с картинкой.</p>
+
+  <h3 style="margin-top:6px">Часть А · один артефакт</h3>
+  <p style="margin-top:2px">Включи <b>только</b> указанный артефакт, поставь заданную «Силу».
+  Запиши: (а) как изменился спектр (куда уехала энергия); (б) какой признак сработал в вердикте;
+  (в) чем такой канал опасен для декодера.</p>
+  <table>
+    <tr><th>Вариант</th><th>Артефакт</th><th>Сила $A$</th></tr>
+    <tr><td>1</td><td>Клиппинг</td><td>1.10</td></tr>
+    <tr><td>2</td><td>Motion (рывок)</td><td>0.60</td></tr>
+    <tr><td>3</td><td>Наводка 50 Гц</td><td>0.50</td></tr>
+    <tr><td>4</td><td>Отрыв электрода</td><td>0.90</td></tr>
+    <tr><td>5</td><td>Клиппинг</td><td>0.80</td></tr>
+  </table>
+
+  <h3>Часть Б · составной случай + SNR</h3>
+  <p style="margin-top:2px">Теперь <b>несколько условий сразу</b>. Выставь их, потом <b>посчитай SNR</b>
+  по формуле $20\log_{10}(\mathrm{RMS}_{\text{актив}}/\mathrm{RMS}_{\text{покой}})$ для заданных RMS
+  и сверь с оценкой виджета; укажи <b>все</b> причины брака (или что канал годен) и <b>минимальный</b>
+  шум покоя, при котором SNR ещё $\ge 10$ дБ.</p>
+  <table>
+    <tr><th>Вариант</th><th>Что включить</th><th>Сила $A$ / Шум покоя</th><th>Посчитать SNR для</th></tr>
+    <tr><td>1</td><td>Motion + Наводка 50 Гц</td><td>0.70 / 0.10</td><td>RMS_акт 0.30, RMS_покой 0.03</td></tr>
+    <tr><td>2</td><td>Клиппинг + Наводка 50 Гц</td><td>1.00 / 0.06</td><td>RMS_акт 0.40, RMS_покой 0.04</td></tr>
+    <tr><td>3</td><td>только Шум (болячек нет)</td><td>0.50 / 0.25</td><td>RMS_акт 0.20, RMS_покой 0.10</td></tr>
+    <tr><td>4</td><td>Отрыв + Наводка 50 Гц</td><td>0.90 / 0.08</td><td>RMS_акт 0.05, RMS_покой 0.05</td></tr>
+    <tr><td>5</td><td>Motion + Клиппинг</td><td>1.10 / 0.12</td><td>RMS_акт 0.35, RMS_покой 0.07</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Подсказка: SNR зависит только от отношения RMS. $r=10\to20$ дБ,
+  $r=2\to6$ дБ, $r=1\to0$ дБ. Для «SNR $\ge10$ дБ» нужно $r\ge\sqrt{10}\approx3{,}16$.</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Чистая ЭМГ живёт в полосе <b>20–450 Гц</b>; любой артефакт кладёт энергию «не туда» —
+        и именно по этому его ловят.</li>
+    <li><b>Клиппинг</b> → гармоники выше полосы; <b>motion</b> → энергия ниже 20 Гц;
+        <b>отрыв</b> → 50 Гц или «мёртвый» ноль.</li>
+    <li><b>SNR</b> $=20\log_{10}(\mathrm{RMS}_{\text{актив}}/\mathrm{RMS}_{\text{покой}})$ — отношение,
+        не разность; в дБ. $\gtrsim 10$ дБ — рабочий канал.</li>
+    <li><b>Отбраковка</b> — это 3–4 дешёвых проверки (доля на потолке, $\sigma$, доля мощности в
+        подозрительных полосах). Проще пропустить плохой канал, чем чинить враньё декодера потом.</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик к M-серии.</b> Оценка спектра/мощности и «где
+  сидит энергия» подробнее разобрана в <b>E2</b> (спектр) и в M-серии по спектральному анализу;
+  здесь мы применяем те же ДПФ-инструменты к задаче контроля качества.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>В какой полосе лежит чистая поверхностная ЭМГ? Почему это важно для отбраковки?</li>
+      <li>Что такое клиппинг и почему он рождает гармоники в спектре?</li>
+      <li>Чем motion-артефакт отличается от наводки 50 Гц во времени и в спектре?</li>
+      <li>Что такое SNR? Почему отношение, а не разность, и почему множитель 20 в дБ?</li>
+      <li>Из каких проверок можно собрать авто-детектор плохого канала? Назови пороги.</li>
+      <li>Почему грязный сигнал — «провал №1» для протеза? Что случится с клешнёй?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Кому интересно повторить в коде — есть необязательный
+    <code>solution.py</code>: он генерит синтетический ЭМГ, навешивает артефакты (клиппинг/motion/
+    50 Гц/отрыв), считает SNR и прогоняет авто-детектор на 4 каналах, печатая вердикт по каждому.
+    Запуск из папки <code>dsp/</code>: <kbd>./run.sh E5</kbd> (или <kbd>./run.sh E5 --save</kbd> для
+    картинок). Для самой работы он не нужен — всё важное есть в виджете выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 завершена · дальше: часть 2 — E6 — признаки ЭМГ (из окна сигнала → вектор чисел)
+</p>
+
+</div>
+
+<script>
+  // ---------- переключатель темы ----------
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redrawScopes) window.__redrawScopes();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){
+      apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    });
+  })();
+
+  // ---------- общие мат-утилиты ----------
+  function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+  function fmt(x,d){ d=(d==null)?1:d; var p=Math.pow(10,d); return (Math.round(x*p)/p).toString().replace('.', ','); }
+  // детерминированный ГПСЧ (LCG) — картинка не «прыгает»
+  function lcg(seed){ var s=seed>>>0||1; return function(){ s=(1103515245*s+12345)&0x7fffffff; return s/0x7fffffff; }; }
+  function randn(rnd){ var u=1e-9+rnd(), v=rnd(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  // магнитуда ДПФ для k=0..N/2
+  function dftMag(x){
+    var N=x.length, half=N>>1, out=new Float64Array(half+1), k,n;
+    for(k=0;k<=half;k++){ var re=0,im=0, w=-2*Math.PI*k/N;
+      for(n=0;n<N;n++){ var a=w*n; re+=x[n]*Math.cos(a); im+=x[n]*Math.sin(a); }
+      out[k]=Math.sqrt(re*re+im*im)/N;
+    } return out;
+  }
+
+  var FS = 1000, N = 512;  // частота дискретизации виджета и длина окна (0,512 с)
+  // чистый ЭМГ: сумма случайно-фазовых тонов в полосе 20..450 Гц под гауссовой пачкой
+  var _tones = (function(){
+    var rnd=lcg(2025), K=70, arr=[];
+    for(var i=0;i<K;i++){ var f=20+(450-20)*i/(K-1); arr.push({f:f, ph:rnd()*2*Math.PI, m:0.5+rnd()}); }
+    return arr;
+  })();
+  function cleanEMG(amp){
+    var x=new Float64Array(N), n,i, mx=0;
+    for(n=0;n<N;n++){ var t=n/FS, s=0;
+      for(i=0;i<_tones.length;i++) s+=_tones[i].m*Math.sin(2*Math.PI*_tones[i].f*t+_tones[i].ph);
+      x[n]=s; if(Math.abs(s)>mx) mx=Math.abs(s);
+    }
+    for(n=0;n<N;n++){ var u=(n-N/2)/(N/6); x[n]=amp*x[n]/(mx+1e-9)*Math.exp(-0.5*u*u); }
+    return x;
+  }
+
+  // ---------- главный виджет ----------
+  (function(){
+    var elClip=document.getElementById('a_clip'), elMot=document.getElementById('a_motion'),
+        elMain=document.getElementById('a_mains'), elOff=document.getElementById('a_off'),
+        elAmp=document.getElementById('a_amp'), elNoise=document.getElementById('a_noise'),
+        ampv=document.getElementById('a_ampv'), noisev=document.getElementById('a_noisev'),
+        cSig=document.getElementById('mn_sig'), cSpec=document.getElementById('mn_spec'),
+        out=document.getElementById('mn_out');
+    var CLIP=1.0, TH_CLIP=0.02, TH_STD=0.02, TH_MAINS=0.40, TH_LF=0.30;
+
+    function build(){
+      var amp=+elAmp.value, noise=+elNoise.value;
+      var clipOn=elClip.checked, motOn=elMot.checked, mainOn=elMain.checked, offOn=elOff.checked;
+      var rnd=lcg(777);
+      var base = offOn ? new Float64Array(N) : cleanEMG(amp);   // отрыв → полезного ЭМГ нет
+      var x=new Float64Array(N), n;
+      for(n=0;n<N;n++){
+        var t=n/FS, v=base[n];
+        if(motOn){ var gg=Math.exp(-Math.pow((t-0.25)/0.05,2)); v += 2.6*gg*Math.sin(2*Math.PI*1.5*t); }
+        if(mainOn) v += (offOn?0.7:0.5)*Math.sin(2*Math.PI*50*t);
+        v += noise*randn(rnd);
+        x[n]=v;
+      }
+      // клиппинг: усиление ×2.8 и потолок ±1
+      if(clipOn){ for(n=0;n<N;n++){ var y=2.8*x[n]; if(y>CLIP){y=CLIP;} else if(y<-CLIP){y=-CLIP;} x[n]=y; } }
+      // клиппинг = ПЛАТО: много отсчётов пиннятся ровно на самом крае (одно и то же
+      // значение). Большой гладкий выброс (motion) через свой пик проходит и НЕ даёт плато.
+      var peak=0; for(n=0;n<N;n++) peak=Math.max(peak,Math.abs(x[n]));
+      var clipFrac=0;
+      if(peak>1e-3){ var c=0, thr=peak-1e-4; for(n=0;n<N;n++) if(Math.abs(x[n])>=thr) c++; clipFrac=c/N; }
+      return {x:x, clipFrac:clipFrac};
+    }
+
+    function stats(x){
+      var n, mean=0; for(n=0;n<x.length;n++) mean+=x[n]; mean/=x.length;
+      var v=0; for(n=0;n<x.length;n++){ var d=x[n]-mean; v+=d*d; } var std=Math.sqrt(v/x.length);
+      var mag=dftMag(x), P=new Float64Array(mag.length), tot=0, k;
+      for(k=0;k<mag.length;k++){ P[k]=mag[k]*mag[k]; tot+=P[k]; }
+      tot+=1e-24;
+      function fr(f0,f1){ var s=0; for(k=0;k<P.length;k++){ var f=k*FS/x.length; if(f>=f0&&f<=f1) s+=P[k]; } return s/tot; }
+      return {std:std, mag:mag, lf:fr(0,20), mains:fr(48,52)};
+    }
+    // оценка SNR: RMS центра (актив) к RMS краёв (покой)
+    function snrDb(x){
+      var n, a=0,na=0, r=0,nr=0, c=N/2, wa=N/8;
+      for(n=0;n<N;n++){ if(Math.abs(n-c)<wa){ a+=x[n]*x[n]; na++; } else if(n<N*0.12||n>N*0.88){ r+=x[n]*x[n]; nr++; } }
+      var rmsA=Math.sqrt(a/Math.max(na,1)+1e-24), rmsR=Math.sqrt(r/Math.max(nr,1)+1e-24);
+      return 20*Math.log10(rmsA/rmsR);
+    }
+
+    function drawSig(x){
+      var ctx=cSig.getContext('2d'), W=cSig.width, H=cSig.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), warn=css('--warn'), muted=css('--muted');
+      var pad=28, y0=H/2, n,xp,yp, mx=1.15;
+      ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+      // потолок ±1
+      ctx.strokeStyle=warn; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+      var yc=y0-(1/mx)*(H/2-14); ctx.beginPath(); ctx.moveTo(pad,yc); ctx.lineTo(W-pad,yc);
+      ctx.moveTo(pad,y0+(y0-yc)); ctx.lineTo(W-pad,y0+(y0-yc)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=accent; ctx.lineWidth=1.6; ctx.beginPath();
+      for(n=0;n<N;n++){ xp=pad+(n/(N-1))*(W-2*pad); yp=y0-(x[n]/mx)*(H/2-14); n?ctx.lineTo(xp,yp):ctx.moveTo(xp,yp); }
+      ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='left'; ctx.fillText('время →',pad,H-6);
+    }
+    function drawSpec(st){
+      var ctx=cSpec.getContext('2d'), W=cSpec.width, H=cSpec.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), accent=css('--accent'), ok=css('--ok'), oks=css('--ok-soft'),
+          warns=css('--warn-soft'), muted=css('--muted');
+      var pad=30, y0=H-22, mag=st.mag, half=mag.length, fmax=FS/2;
+      function xOf(f){ return pad+(f/fmax)*(W-2*pad); }
+      // зоны
+      ctx.fillStyle=oks; ctx.fillRect(xOf(20),8,xOf(450)-xOf(20),y0-8);
+      ctx.fillStyle=warns; ctx.fillRect(xOf(0),8,xOf(20)-xOf(0),y0-8);
+      ctx.fillStyle=warns; ctx.fillRect(xOf(49),8,xOf(51)-xOf(49),y0-8);
+      var mx=0,k; for(k=0;k<half;k++) mx=Math.max(mx,mag[k]); mx+=1e-9;
+      ctx.strokeStyle=line; ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(pad,y0); ctx.lineTo(W-pad,y0); ctx.stroke();
+      ctx.strokeStyle=accent; ctx.lineWidth=1.4; ctx.beginPath();
+      for(k=0;k<half;k++){ var f=k*fmax/half, xp=xOf(f), yp=y0-(mag[k]/mx)*(y0-12); k?ctx.lineTo(xp,yp):ctx.moveTo(xp,yp); }
+      ctx.stroke();
+      ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      [0,50,100,200,300,450].forEach(function(f){ if(f<=fmax) ctx.fillText(f+'',xOf(f),H-6); });
+      ctx.textAlign='left'; ctx.fillText('частота, Гц →',W-140,H-6);
+    }
+
+    function upd(){
+      ampv.textContent=fmt(+elAmp.value,2); noisev.textContent=fmt(+elNoise.value,2);
+      var b=build(), st=stats(b.x), snr=snrDb(b.x);
+      drawSig(b.x); drawSpec(st);
+      var reasons=[];
+      if(b.clipFrac>TH_CLIP) reasons.push('КЛИППИНГ ('+fmt(100*b.clipFrac,0)+'% на потолке)');
+      if(st.std<TH_STD) reasons.push('НЕТ СИГНАЛА (σ='+fmt(st.std,3)+')');
+      if(st.mains>TH_MAINS) reasons.push('НАВОДКА 50 Гц ('+fmt(100*st.mains,0)+'% мощности)');
+      if(st.lf>TH_LF) reasons.push('MOTION — энергия &lt;20 Гц ('+fmt(100*st.lf,0)+'%)');
+      var ok=reasons.length===0;
+      out.className = ok ? 'readout ok' : 'readout bad';
+      var snrTxt='SNR ≈ '+fmt(snr,1)+' дБ';
+      if(ok){
+        var mark = snr>=10 ? '' : ' — но SNR низкий, канал сомнителен';
+        out.innerHTML='<span class="big">✔ ГОДЕН</span>. '+snrTxt+mark+
+          '. σ='+fmt(st.std,3)+', энергия &lt;20 Гц: '+fmt(100*st.lf,0)+'%, на 50 Гц: '+fmt(100*st.mains,0)+'%.';
+      } else {
+        out.innerHTML='<span class="big">✘ БРАК:</span> '+reasons.join('; ')+'. '+snrTxt+'.';
+      }
+    }
+    [elAmp,elNoise].forEach(function(e){ e.addEventListener('input',upd); });
+    [elClip,elMot,elMain,elOff].forEach(function(e){ e.addEventListener('change',upd); });
+    window.__redrawScopes = upd;
+    upd();
+  })();
+
+  // ---------- иллюстрации блока «почему» ----------
+  (function(){
+    var g=document.getElementById('w_gain'), r=document.getElementById('w_rest');
+    if(!g||!r) return;
+    var gv=document.getElementById('w_gainv'), rv=document.getElementById('w_restv'),
+        out=document.getElementById('w_out'), cClip=document.getElementById('w_clip'), cSnr=document.getElementById('w_snr');
+
+    function drawClip(){
+      var gain=+g.value, base=cleanEMG(0.9);
+      var ctx=cClip.getContext('2d'), W=cClip.width, H=cClip.height; ctx.clearRect(0,0,W,H);
+      var accent=css('--accent'), warn=css('--warn'), muted=css('--muted');
+      var pad=26, y0=H/2, n,xp,yp, mx=Math.max(1.2, gain*1.05), CLIP=1.0;
+      var s0=Math.floor(N*0.40), s1=Math.floor(N*0.60), L=s1-s0;
+      ctx.strokeStyle=warn; ctx.lineWidth=1; ctx.setLineDash([5,4]);
+      var yc=y0-(CLIP/mx)*(H/2-14); ctx.beginPath(); ctx.moveTo(pad,yc); ctx.lineTo(W-pad,yc);
+      ctx.moveTo(pad,y0+(y0-yc)); ctx.lineTo(W-pad,y0+(y0-yc)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle=muted; ctx.lineWidth=1.4; ctx.beginPath();
+      for(n=0;n<=L;n++){ var v=gain*base[s0+n]; xp=pad+(n/L)*(W-2*pad); yp=y0-(v/mx)*(H/2-14); n?ctx.lineTo(xp,yp):ctx.moveTo(xp,yp); }
+      ctx.stroke();
+      ctx.strokeStyle=accent; ctx.lineWidth=1.8; ctx.beginPath();
+      for(n=0;n<=L;n++){ var v2=gain*base[s0+n]; if(v2>CLIP)v2=CLIP; else if(v2<-CLIP)v2=-CLIP; xp=pad+(n/L)*(W-2*pad); yp=y0-(v2/mx)*(H/2-14); n?ctx.lineTo(xp,yp):ctx.moveTo(xp,yp); }
+      ctx.stroke();
+    }
+    function drawSnr(){
+      var rest=+r.value, ctx=cSnr.getContext('2d'), W=cSnr.width, H=cSnr.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'), ok=css('--ok'), warn=css('--warn'), muted=css('--muted'), ink=css('--ink');
+      var actR=0.30, restR=rest, snr=20*Math.log10(actR/(restR+1e-9));
+      var baseY=H-30, maxH=H-52, scale=maxH/0.6;
+      function bar(x,val,color,label){
+        var h=Math.min(maxH,val*scale); ctx.fillStyle=color; ctx.fillRect(x,baseY-h,90,h);
+        ctx.fillStyle=muted; ctx.font='12px sans-serif'; ctx.textAlign='center';
+        ctx.fillText(label,x+45,baseY+16); ctx.fillStyle=ink; ctx.fillText('RMS '+fmt(val,2),x+45,baseY-h-6);
+      }
+      ctx.strokeStyle=line; ctx.beginPath(); ctx.moveTo(30,baseY); ctx.lineTo(W-30,baseY); ctx.stroke();
+      bar(W*0.28,actR,ok,'активность'); bar(W*0.52,restR,warn,'покой');
+      ctx.fillStyle = snr>=10?ok:warn; ctx.font='bold 15px sans-serif'; ctx.textAlign='left';
+      ctx.fillText('r = '+fmt(actR/(restR+1e-9),1)+'  →  SNR = '+fmt(snr,1)+' дБ'+(snr>=10?'  (годен)':'  (низкий)'), W*0.68, H/2);
+    }
+    function updOut(){
+      var gain=+g.value, rest=+r.value, snr=20*Math.log10(0.30/(rest+1e-9));
+      var clips = gain>1.05;
+      out.className = (snr>=10 && !clips) ? 'readout ok' : 'readout bad';
+      out.innerHTML = 'Усиление ×'+fmt(gain,1)+' → '+(clips?'вершины срезаются (клиппинг)':'без клиппинга')+
+        '. &nbsp; Шум покоя '+fmt(rest,2)+' → SNR '+fmt(snr,1)+' дБ '+(snr>=10?'(годен)':'(сомнительно)')+'.';
+    }
+    function redraw(){ gv.textContent=fmt(+g.value,1)+'×'; rv.textContent=fmt(+r.value,2); drawClip(); drawSnr(); updOut(); }
+    g.addEventListener('input',redraw); r.addEventListener('input',redraw);
+    var prev=window.__redrawScopes; window.__redrawScopes=function(){ if(prev) prev(); redraw(); };
+    redraw();
+  })();
+</script>
+
+</body>
+</html>

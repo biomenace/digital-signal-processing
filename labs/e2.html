@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Лабораторная работа E2 — Спектр: из каких частот состоит сигнал </title>
+
+<script>
+  window.MathJax = {
+    tex: { inlineMath: [['\\(', '\\)'], ['$', '$']], displayMath: [['\\[', '\\]'], ['$$','$$']] },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" async></script>
+
+<style>
+  :root{
+    --bg:#f6f8fb; --card:#ffffff; --ink:#20272f; --muted:#606b78;
+    --accent:#2d6cdf; --accent-soft:#eaf1ff;
+    --ok:#0f9d58; --ok-soft:#e8f8ef; --warn:#d9822b; --warn-soft:#fdf1e5;
+    --line:#e6eaf1; --shadow:0 2px 10px rgba(20,30,50,.05);
+    --code-bg:#0f1626; --code-ink:#e6edf3; --chip:#eef2f8;
+    --hero1:#2d6cdf; --hero2:#5b3fd6;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1320; --card:#161d2b; --ink:#e7edf6; --muted:#9aa7b8;
+    --accent:#6ea0ff; --accent-soft:#18263f;
+    --ok:#4cc98a; --ok-soft:#12271d; --warn:#e0a45f; --warn-soft:#2a2013;
+    --line:#25303f; --shadow:0 2px 12px rgba(0,0,0,.35);
+    --code-bg:#0a0f1a; --code-ink:#e6edf3; --chip:#1d2637;
+    --hero1:#2a4a9c; --hero2:#3f2f8f;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    line-height:1.68; font-size:17px; transition:background .25s,color .25s;}
+  .wrap{max-width:900px; margin:0 auto; padding:26px 20px 80px;}
+  .theme-btn{position:fixed; top:14px; right:14px; z-index:50; cursor:pointer;
+    background:var(--card); color:var(--ink); border:1px solid var(--line);
+    border-radius:22px; padding:8px 14px; font-size:14px; font-weight:600; box-shadow:var(--shadow); transition:transform .15s;}
+  .theme-btn:hover{transform:translateY(-1px);}
+  header.hero{background:linear-gradient(135deg,var(--hero1),var(--hero2)); color:#fff;
+    border-radius:16px; padding:30px 28px; margin-bottom:22px; box-shadow:var(--shadow);}
+  header.hero .tag{display:inline-block; background:rgba(255,255,255,.18);
+    padding:4px 12px; border-radius:20px; font-size:13px; letter-spacing:.4px; margin-bottom:12px;}
+  header.hero h1{margin:0 0 8px; font-size:26px; line-height:1.25;}
+  header.hero p{margin:0; opacity:.94; font-size:15px;}
+  h2{font-size:22px; margin:34px 0 10px;}
+  h3{font-size:18px; margin:22px 0 8px; color:var(--ink);}
+  p{margin:11px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:18px 22px; margin:16px 0; box-shadow:var(--shadow);}
+  .lead{font-size:16.5px;}
+  details.acc{background:var(--card); border:1px solid var(--line); border-radius:12px;
+    margin:10px 0; box-shadow:var(--shadow); overflow:hidden;}
+  details.acc>summary{cursor:pointer; list-style:none; padding:14px 18px; font-weight:600;
+    display:flex; align-items:center; gap:10px; user-select:none;}
+  details.acc>summary::-webkit-details-marker{display:none;}
+  details.acc>summary .chev{margin-left:auto; color:var(--muted); transition:transform .2s;}
+  details.acc[open]>summary .chev{transform:rotate(90deg);}
+  details.acc .body{padding:2px 18px 16px; border-top:1px solid var(--line);}
+  .note{border-left:4px solid var(--accent); background:var(--accent-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  .tip{border-left:4px solid var(--ok); background:var(--ok-soft); padding:11px 15px; border-radius:8px; margin:14px 0;}
+  code{background:var(--chip); padding:1.5px 6px; border-radius:5px; font-size:14.5px; font-family:"SF Mono",Menlo,Consolas,monospace;}
+  kbd{background:var(--ink); color:var(--bg); border-radius:5px; padding:2px 7px; font-size:13px;}
+  table{border-collapse:collapse; width:100%; margin:12px 0; font-size:15px;}
+  th,td{border:1px solid var(--line); padding:8px 11px; text-align:left;}
+  th{background:var(--chip);}
+  hr{border:none; border-top:1px solid var(--line); margin:26px 0;}
+  .muted{color:var(--muted); font-size:14px;}
+
+  .lab{background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin:18px 0; box-shadow:var(--shadow);}
+  .lab h3{margin-top:4px;}
+  .scope{width:100%; height:auto; border:1px solid var(--line); border-radius:10px;
+    background:var(--bg); display:block; margin:6px 0 4px;}
+  .legend{font-size:13px; color:var(--muted); margin:2px 0 10px;}
+  .controls{display:grid; grid-template-columns:1fr 1fr; gap:8px 22px; margin:8px 0;}
+  @media(max-width:620px){.controls{grid-template-columns:1fr}}
+  .ctrl{display:flex; align-items:center; gap:10px;}
+  .ctrl label{flex:0 0 128px; font-size:14px;}
+  .ctrl input[type=range]{flex:1; accent-color:var(--accent);}
+  .ctrl .val{flex:0 0 66px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600; font-size:14px;}
+  .readout{border-radius:10px; padding:10px 14px; margin:8px 0 2px; font-size:15px; border:1px solid var(--line); background:var(--accent-soft);}
+  .readout .big{font-weight:700;}
+  .tasklist{background:var(--accent-soft); border-radius:10px; padding:10px 16px 10px 18px; margin:12px 0 2px;}
+  .tasklist b{color:var(--accent);}
+  .readout.ok{background:var(--ok-soft); border-color:var(--ok);}
+  .readout.bad{background:var(--warn-soft); border-color:var(--warn);}
+
+  /* ---------- всплывающие подсказки по обозначениям ---------- */
+  .term{position:relative; border-bottom:1px dotted var(--muted); cursor:help;}
+  .term::after{
+    content:attr(data-tip); position:absolute; left:0; bottom:135%;
+    background:var(--ink); color:var(--bg); padding:8px 11px; border-radius:8px;
+    font-size:13px; line-height:1.45; width:250px; box-shadow:var(--shadow);
+    opacity:0; visibility:hidden; pointer-events:none;
+    transition:opacity .15s .45s, visibility 0s .6s; z-index:60; white-space:normal; font-weight:400;
+  }
+  .term:hover::after{opacity:1; visibility:visible; transition:opacity .15s .45s;}
+  .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
+    padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
+</style>
+</head>
+<body>
+<!-- injected by publish.py: link back to the lab index -->
+<style>
+  .labs-back{
+    position:fixed; top:14px; left:14px; z-index:60;
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--card,#fff); color:var(--ink,#20272f);
+    border:1px solid var(--line,#e6eaf1); border-radius:22px;
+    padding:8px 14px; font-size:14px; font-weight:600; text-decoration:none;
+    box-shadow:var(--shadow,0 2px 10px rgba(20,30,50,.05));
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    transition:transform .15s;
+  }
+  .labs-back:hover{transform:translateY(-1px);}
+  @media (max-width:560px){ .labs-back{font-size:13px; padding:6px 11px;} }
+</style>
+<a class="labs-back" href="../index.html">&larr; All labs</a>
+
+
+<button class="theme-btn" id="themeBtn" aria-label="Переключить тему">🌙 Ночь</button>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="tag">Биосигналы · Лабораторная работа E2</span>
+  <h1>Спектр: из каких частот состоит сигнал</h1>
+  <p>Серия «синус → протез» · часть 1 · одна тема, один интерактивный пример</p>
+</header>
+
+<div class="card">
+  <p class="lead" style="margin-top:0">
+    <b>Одна простая тема:</b> любой сигнал можно разложить на синусы разных частот.
+    Показать «сколько какой частоты внутри» — это и есть <span class="term" data-tip="Спектр: график «сколько какой частоты в сигнале». По горизонтали — частота (Гц), по вертикали — её вклад (амплитуда).">спектр</span>. Считает его
+    <span class="term" data-tip="Преобразование Фурье: способ разложить сигнал на сумму синусов и узнать вклад каждой частоты. В коде — np.fft.fft."><b>преобразование Фурье</b></span> (в коде — одна строка <code>np.fft.fft</code>).
+  </p>
+  <p style="margin-bottom:0">
+    В прошлой работе (E1) ты понял, <i>как часто</i> замерять сигнал. Теперь научимся
+    <b>видеть его частоты</b>. Ниже — интерактивный пример: сверху сигнал во времени,
+    снизу его спектр. Двигай ползунки частот и амплитуд — и смотри, как в спектре
+    двигаются и растут <b>пики</b>. Каждый чистый тон даёт <b>один пик</b> на своей частоте.
+  </p>
+</div>
+
+<h2>Теория — коротко</h2>
+<div class="card">
+  <p style="margin-top:0">Сигнал во времени — это «значение в каждый момент». Спектр —
+  это «сколько в сигнале каждой частоты». Формально спектр считают дискретным
+  преобразованием Фурье:</p>
+  \[ S[k]=\sum_{n=0}^{N-1}s[n]\,e^{-j2\pi kn/N}, \]
+  <p>а на графике рисуют его модуль $|S[k]|$ по оси частот. Три факта, которые ты
+  проверишь в виджете ниже:</p>
+  <ul style="margin-bottom:0">
+    <li><b>один чистый синус → один пик</b> ровно на его частоте;</li>
+    <li><b>несколько тонов → несколько пиков</b>; выше амплитуда тона → выше его пик;</li>
+    <li><b>шум</b> поднимает «траву» по всему спектру; полезный пик надо разглядеть над ней.</li>
+  </ul>
+</div>
+
+<!-- ============ КАК/ПОЧЕМУ РАБОТАЕТ СПЕКТР ============ -->
+<details class="acc" style="margin-top:18px" open>
+  <summary>📐 Как спектр находит частоты — и почему это работает<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:6px">«$\texttt{np.fft.fft}$» — не чёрный ящик. Внутри простая идея: спектр — это
+    <b>детектор совпадений</b>. Чтобы проверить, есть ли в сигнале какая-то частота, мы
+    «прикладываем» к нему эталонный синус этой частоты и смотрим, откликается ли сигнал.
+    Двигай ползунок <b>пробной частоты</b> — и две картинки ниже покажут, как это работает.</p>
+
+    <div class="lab" style="margin:12px 0 6px">
+      <div class="controls">
+        <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Пробная (эталонная) частота: мы прикладываем к сигналу синус именно этой частоты и проверяем отклик.">Пробная частота $g$</span></label><input type="range" id="e_g" min="0" max="50" step="1" value="12"><span class="val" id="e_gv">12 Гц</span></div>
+      </div>
+      <div class="readout ok" id="e_out"></div>
+      <div class="muted" style="margin-top:6px">Сигнал для примера фиксированный: <b>12 Гц + 30 Гц</b>
+        (частота дискретизации $F_д=100$ Гц). Найди пробной частотой оба тона.</div>
+    </div>
+
+    <h3 style="margin-top:12px">Шаг 1. Умножаем сигнал на пробный синус</h3>
+    <p style="margin-top:2px">Берём наш сигнал (синий) и эталонный синус частоты $g$ (оранжевый пунктир)
+    и <b>перемножаем их точка за точкой</b>:</p>
+    <canvas id="e_sig" class="scope" width="840" height="140"></canvas>
+    <div class="legend" style="margin-bottom:10px">
+      <span><span class="sw" style="border-color:var(--accent)"></span><b>сигнал</b> (12+30 Гц)</span>
+      <span><span class="sw" style="border-color:var(--warn); border-top-style:dashed"></span><b>пробный синус</b> частоты $g$</span>
+    </div>
+
+    <h3>Шаг 2. Складываем произведение (это и есть высота пика)</h3>
+    <p style="margin-top:2px">Смотрим на произведение и складываем всю его площадь
+    (зелёное — плюс, оранжевое — минус):</p>
+    <canvas id="e_prod" class="scope" width="840" height="140"></canvas>
+    <div class="legend" style="margin-bottom:10px">↑ произведение сигнал × пробный синус.
+      <b>Суммарная площадь</b> = отклик $S(g)$ = высота столбика в спектре на частоте $g$.</div>
+
+    <p><b>Почему совпадение даёт большую сумму.</b> Если $g$ <b>совпал</b> с тоном — два синуса
+    идут «в такт»: где сигнал плюс, там и пробный плюс (плюс×плюс), где минус — там минус×минус
+    (тоже плюс). Произведение <b>почти всё зелёное</b> → площадь большая → высокий пик. Если $g$
+    <b>чужой</b> — синусы то в такт, то в противофазе, произведение прыгает плюс-минус и
+    <b>гасит само себя</b> → площадь ≈ 0 → пика нет. Формально это и есть сумма из теории:</p>
+    \[ S(g)\;\sim\;\sum_{n=0}^{N-1} s[n]\cdot\sin\!\left(2\pi g\,\tfrac{n}{F_д}\right). \]
+
+    <h3>Шаг 3. Спектр — тот же детектор на всех частотах сразу</h3>
+    <p style="margin-top:2px">Теперь прогоним пробную частоту $g$ по всему диапазону от $0$ до
+    Найквиста ($F_д/2=50$ Гц) и на каждой отметим величину отклика. Получится спектр — смотри,
+    как <b>сами загораются пики</b> ровно на 12 и 30 Гц (полоска бежит по частотам):</p>
+    <canvas id="e_spec" class="scope" width="840" height="170"></canvas>
+    <div class="legend" style="margin-bottom:10px">↑ по мере того как бегущая линия проходит частоту,
+      мы считаем отклик на ней и рисуем точку. Высокий отклик = пик = «эта частота в сигнале есть».</div>
+
+    <h3>Разрешение: почему близкие пики сливаются</h3>
+    <p style="margin-top:2px">Два соседних отклика мы можем различить, только если между ними
+    помещается хотя бы одна «ступенька» спектра. Ширина ступеньки:</p>
+    \[ \Delta f = \frac{F_д}{N}, \]
+    <p style="margin-top:2px">где $N$ — длина окна (сколько отсчётов взяли). Чем <b>длиннее окно</b>
+    (больше $N$, дольше слушаем), тем <b>тоньше</b> ступенька и тем ближе стоящие тоны можно
+    разделить. Слишком короткое окно — два тона сольются в один пик. Это проверяется в
+    задании 4 виджета ниже.</p>
+  </div>
+</details>
+
+<!-- ============ ВИДЖЕТ ============ -->
+<div class="lab">
+  <h3>Пример · Сигнал и его спектр</h3>
+  <p style="margin-top:2px">Сигнал — сумма до трёх синусов плюс шум (частота дискретизации
+  $F_д=200$ Гц, поэтому спектр виден до Найквиста $100$ Гц — см. E1). Поставь амплитуду тона
+  в 0, чтобы его выключить.</p>
+  <canvas id="scT" class="scope" width="840" height="150"></canvas>
+  <div class="legend">↑ сигнал во времени $s(t)$</div>
+  <canvas id="scS" class="scope" width="840" height="200"></canvas>
+  <div class="legend">↑ спектр $|S(f)|$ — пики на частотах тонов</div>
+  <div class="controls">
+    <div class="ctrl"><label><span class="term" data-tip="Частота первого тона (Гц). В спектре она даст один пик ровно на этой частоте.">Тон 1: $f_1$</span></label><input type="range" id="f1" min="0" max="90" step="1" value="15"><span class="val" id="f1v">15 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда первого тона — насколько он «громкий». Чем больше, тем выше его пик в спектре.">Амплитуда $A_1$</span></label><input type="range" id="A1" min="0" max="1" step="0.05" value="1.0"><span class="val" id="A1v">1.00</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Частота второго тона (Гц) — второй пик в спектре.">Тон 2: $f_2$</span></label><input type="range" id="f2" min="0" max="90" step="1" value="40"><span class="val" id="f2v">40 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда второго тона. Поставь 0, чтобы выключить этот тон.">Амплитуда $A_2$</span></label><input type="range" id="A2" min="0" max="1" step="0.05" value="0.6"><span class="val" id="A2v">0.60</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Частота третьего тона (Гц) — третий пик, если его амплитуда не ноль.">Тон 3: $f_3$</span></label><input type="range" id="f3" min="0" max="90" step="1" value="0"><span class="val" id="f3v">0 Гц</span></div>
+    <div class="ctrl"><label><span class="term" data-tip="Амплитуда третьего тона. По умолчанию 0 — тон выключен.">Амплитуда $A_3$</span></label><input type="range" id="A3" min="0" max="1" step="0.05" value="0.0"><span class="val" id="A3v">0.00</span></div>
+    <div class="ctrl" style="grid-column:1 / -1"><label><span class="term" data-tip="Уровень шума (СКО). Шум поднимает «траву» по всему спектру и может утопить слабый пик.">Шум $\sigma$</span></label><input type="range" id="nz" min="0" max="0.8" step="0.02" value="0.0"><span class="val" id="nzv">0.00</span></div>
+  </div>
+  <div class="readout" id="out"></div>
+  <div class="tasklist">
+    <b>Задания (двигай ползунки):</b>
+    <ol style="margin:6px 0 0">
+      <li>Выключи тоны 2 и 3 ($A=0$). Двигай $f_1$ — убедись, что <b>пик едет за частотой</b>.
+          Поставь $f_1=25$ Гц и найди пик ровно на 25 Гц.</li>
+      <li>Включи тон 2. Получилось <b>два пика</b>. Меняй $A_2$ — как меняется высота
+          второго пика?</li>
+      <li>Добавь шум $\sigma$. При каком уровне мелкий пик <b>тонет</b> в «траве» шума?</li>
+      <li>Поставь $f_1=30$, $f_2=34$ Гц (близко). Видно ли <b>два</b> пика? Раздвигай их —
+          при какой разнице они снова различимы? (Это и есть спектральное разрешение.)</li>
+    </ol>
+  </div>
+</div>
+
+<!-- ============ ВАРИАНТЫ ============ -->
+<h2>Задания по вариантам (сдать)</h2>
+<div class="card">
+  <p style="margin-top:0">Возьми свой номер. Задай указанные тоны и <b>запиши в отчёт</b>:
+  (а) сколько пиков видно и на каких частотах; (б) какой пик выше и почему; (в) при каком
+  уровне шума $\sigma$ самый слабый тон перестаёт читаться.</p>
+  <table>
+    <tr><th>Вариант</th><th>Тоны (частота @ амплитуда)</th></tr>
+    <tr><td>1</td><td>10 Гц @1.0 · 35 Гц @0.5</td></tr>
+    <tr><td>2</td><td>18 Гц @0.8 · 50 Гц @1.0 · 70 Гц @0.4</td></tr>
+    <tr><td>3</td><td>22 Гц @1.0 · 26 Гц @0.9 (близкие — проверь разрешение)</td></tr>
+    <tr><td>4</td><td>8 Гц @0.6 · 45 Гц @1.0</td></tr>
+    <tr><td>5</td><td>15 Гц @1.0 · 30 Гц @0.7 · 60 Гц @0.5</td></tr>
+  </table>
+  <p class="muted" style="margin-bottom:0">Демо-набор (15 и 40 Гц) не совпадает ни с одним
+  вариантом.</p>
+</div>
+
+<h2>Что ты должен понять после работы</h2>
+<div class="card">
+  <ul style="margin:0">
+    <li>Спектр показывает, <b>из каких частот</b> состоит сигнал; чистый тон = один пик.</li>
+    <li>Высота пика связана с <b>амплитудой</b> соответствующего тона.</li>
+    <li><b>Шум</b> поднимает фон по всему спектру — слабый сигнал может в нём утонуть (SNR).</li>
+    <li>Два близких тона сливаются в один пик, пока разница меньше <b>разрешения</b> спектра.</li>
+  </ul>
+  <div class="note" style="margin-bottom:0"><b>Мостик к M-серии.</b> Строгий спектральный
+  анализ (амплитудный и фазовый спектр, спектральная плотность мощности, окна и утечка
+  спектра) разобран глубже в <b>M2</b>. Здесь нам достаточно уметь читать пики.</div>
+</div>
+
+<details class="acc" style="margin-top:18px">
+  <summary>🎓 Вопросы к защите<span class="chev">▸</span></summary>
+  <div class="body">
+    <ol>
+      <li>Что показывает спектр сигнала? Что такое пик в спектре?</li>
+      <li>Почему один синус даёт один пик, а два — два?</li>
+      <li>Как амплитуда тона связана с высотой его пика?</li>
+      <li>Что делает со спектром шум? Что такое отношение сигнал/шум (SNR)?</li>
+      <li>Почему два близких тона могут слиться в один пик? От чего зависит разрешение?</li>
+      <li>До какой частоты вообще виден спектр и почему (связь с Найквистом из E1)?</li>
+    </ol>
+  </div>
+</details>
+
+<details class="acc">
+  <summary>🐍 По желанию: то же в Python<span class="chev">▸</span></summary>
+  <div class="body">
+    <p style="margin-top:2px">Необязательный скрипт <code>solution.py</code> строит сигнал из
+    нескольких тонов с шумом и его спектр через <code>np.fft.rfft</code>, печатает найденные
+    пики. Запуск из <code>dsp/</code>: <kbd>./run.sh E2</kbd>. Для работы он не нужен — всё
+    важное есть в примере выше.</p>
+  </div>
+</details>
+
+<hr>
+<p class="muted" style="text-align:center">
+  Серия EMG «синус → протез», часть 1 · дальше: E3 — цифровые фильтры (убрать шум и помеху)
+</p>
+
+</div>
+
+<script>
+  (function(){
+    var root = document.documentElement;
+    var btn = document.getElementById('themeBtn');
+    function apply(t){
+      root.setAttribute('data-theme', t);
+      btn.textContent = (t === 'dark') ? '☀️ День' : '🌙 Ночь';
+      try { localStorage.setItem('lab_theme', t); } catch(e){}
+      if (window.__redraw) window.__redraw();
+    }
+    var saved = null;
+    try { saved = localStorage.getItem('lab_theme'); } catch(e){}
+    if (!saved) saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+    apply(saved);
+    btn.addEventListener('click', function(){ apply(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark'); });
+  })();
+
+  (function(){
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    var Fs = 200, N = 256;                 // частота дискретизации и длина окна
+    var noiseVec = []; var seed = 12345;   // фиксированный шум, чтобы не «прыгал»
+    for (var i=0;i<N;i++){ seed=(seed*1103515245+12345)&0x7fffffff; noiseVec.push((seed/0x7fffffff)*2-1); }
+
+    var el = {}; ['f1','A1','f2','A2','f3','A3','nz'].forEach(function(id){ el[id]=document.getElementById(id); el[id+'v']=document.getElementById(id+'v'); });
+    var out = document.getElementById('out');
+    var cT = document.getElementById('scT'), cS = document.getElementById('scS');
+
+    function buildSignal(p){
+      var s=[]; for(var n=0;n<N;n++){ var t=n/Fs;
+        var v = p.A1*Math.sin(2*Math.PI*p.f1*t) + p.A2*Math.sin(2*Math.PI*p.f2*t) + p.A3*Math.sin(2*Math.PI*p.f3*t);
+        v += p.nz*noiseVec[n]; s.push(v);
+      } return s;
+    }
+    function spectrum(s){
+      var half=N/2, mag=[]; for(var k=0;k<=half;k++){ var re=0,im=0;
+        for(var n=0;n<N;n++){ var a=2*Math.PI*k*n/N; re+=s[n]*Math.cos(a); im-=s[n]*Math.sin(a);}
+        mag.push(2*Math.sqrt(re*re+im*im)/N);
+      } return mag;
+    }
+    function drawTime(s){
+      var ctx=cT.getContext('2d'),W=cT.width,H=cT.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),accent=css('--accent'); var pad=24,y0=H/2;
+      var amax=0; for(var i=0;i<s.length;i++) amax=Math.max(amax,Math.abs(s[i])); amax=amax*1.15+1e-6;
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      ctx.strokeStyle=accent;ctx.lineWidth=1.8;ctx.beginPath();
+      for(var n=0;n<N;n++){ var x=pad+(n/(N-1))*(W-2*pad), y=y0-(s[n]/amax)*(H/2-10); n?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();
+    }
+    function drawSpec(mag){
+      var ctx=cS.getContext('2d'),W=cS.width,H=cS.height; ctx.clearRect(0,0,W,H);
+      var line=css('--line'),accent=css('--accent'),muted=css('--muted');
+      var padL=38,padB=24,padT=10,padR=14; var half=mag.length-1;
+      var mmax=0; for(var i=0;i<mag.length;i++) mmax=Math.max(mmax,mag[i]); mmax=mmax*1.12+1e-6;
+      var x0=padL, y0=H-padB;
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,padT);ctx.lineTo(x0,y0);ctx.lineTo(W-padR,y0);ctx.stroke();
+      ctx.fillStyle=muted;ctx.font='11px sans-serif';ctx.textAlign='center';
+      for(var fq=0;fq<=100;fq+=20){ var x=x0+(fq/(Fs/2))*(W-padL-padR); ctx.fillText(fq+'', x, H-8);
+        ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,y0);ctx.stroke(); }
+      ctx.fillText('частота, Гц', W-padR-42, H-8);
+      ctx.strokeStyle=accent;ctx.lineWidth=1.8;ctx.beginPath();
+      for(var k=0;k<=half;k++){ var fx=k*Fs/N; var x=x0+(fx/(Fs/2))*(W-padL-padR); var y=y0-(mag[k]/mmax)*(H-padT-padB); k?ctx.lineTo(x,y):ctx.moveTo(x,y);} ctx.stroke();
+    }
+    function findPeaks(mag){
+      var half=mag.length-1, peaks=[], mmax=0,i;
+      for(i=0;i<=half;i++) mmax=Math.max(mmax,mag[i]);
+      for(i=1;i<half;i++){ if(mag[i]>mag[i-1]&&mag[i]>=mag[i+1]&&mag[i]>0.25*mmax){ peaks.push({f:i*Fs/N,m:mag[i]});}}
+      return peaks;
+    }
+    function fmt(x){return (Math.round(x*100)/100).toString().replace('.',',');}
+
+    function update(){
+      var p={f1:+el.f1.value,A1:+el.A1.value,f2:+el.f2.value,A2:+el.A2.value,f3:+el.f3.value,A3:+el.A3.value,nz:+el.nz.value};
+      el.f1v.textContent=p.f1+' Гц'; el.A1v.textContent=fmt(p.A1);
+      el.f2v.textContent=p.f2+' Гц'; el.A2v.textContent=fmt(p.A2);
+      el.f3v.textContent=p.f3+' Гц'; el.A3v.textContent=fmt(p.A3);
+      el.nzv.textContent=fmt(p.nz);
+      var s=buildSignal(p), mag=spectrum(s); drawTime(s); drawSpec(mag);
+      var pk=findPeaks(mag);
+      var txt = pk.length ? ('Найдено пиков: <span class="big">'+pk.length+'</span> — на частотах '+
+                 pk.map(function(q){return fmt(q.f)+' Гц';}).join(', ')) : 'Пиков не видно (только шум?).';
+      out.innerHTML = txt + '. Спектр виден до Найквиста '+(Fs/2)+' Гц.';
+      if(window.MathJax&&MathJax.typesetPromise) MathJax.typesetPromise([out]);
+    }
+    ['f1','A1','f2','A2','f3','A3','nz'].forEach(function(id){ el[id].addEventListener('input',update); });
+    window.__redraw=update; update();
+  })();
+
+  // ---------- иллюстрации к блоку «почему работает спектр» ----------
+  (function(){
+    var eg=document.getElementById('e_g');
+    if(!eg) return;
+    var egv=document.getElementById('e_gv'), out=document.getElementById('e_out');
+    var eSig=document.getElementById('e_sig'), eProd=document.getElementById('e_prod'), eSpec=document.getElementById('e_spec');
+    function css(v){ return getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#333'; }
+    function fmt(x){ return (Math.round(x*100)/100).toString().replace('.', ','); }
+
+    var Fs=100, N=100, GMAX=50;
+    var tones=[{f:12,A:1.0},{f:30,A:0.7}];
+    function sAt(t){ var v=0; for(var i=0;i<tones.length;i++) v+=tones[i].A*Math.sin(2*Math.PI*tones[i].f*t); return v; }
+
+    // отклик S(g): 2·среднее(сигнал·sin(g)) — то, что рисуем в «площади»
+    function respSin(g){ var M=800,acc=0; for(var i=0;i<M;i++){var t=i/M; acc+=sAt(t)*Math.sin(2*Math.PI*g*t);} return 2*acc/M; }
+    // величина отклика (синус+косинус) — для спектра
+    function mag(g){ var M=800,cs=0,sn=0; for(var i=0;i<M;i++){var t=i/M; var s=sAt(t); cs+=s*Math.cos(2*Math.PI*g*t); sn+=s*Math.sin(2*Math.PI*g*t);} cs=2*cs/M; sn=2*sn/M; return Math.sqrt(cs*cs+sn*sn); }
+
+    // предпосчёт спектра по сетке
+    var GRID=[], SPEC=[], gmaxVal=0, gg;
+    for(gg=0; gg<=GMAX; gg+=0.5){ GRID.push(gg); var m=mag(gg); SPEC.push(m); if(m>gmaxVal) gmaxVal=m; }
+    gmaxVal=gmaxVal*1.15+1e-6;
+
+    // ---- Шаг 1: сигнал + пробный синус ----
+    function drawSig(g){
+      var ctx=eSig.getContext('2d'),W=eSig.width,H=eSig.height;ctx.clearRect(0,0,W,H);
+      var line=css('--line'),accent=css('--accent'),warn=css('--warn');
+      var pad=24,y0=H/2,amax=1.95;
+      function X(t){return pad+t*(W-2*pad);} function Y(v){return y0-(v/amax)*(H/2-12);}
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      var M=700,i,t,x,y;
+      ctx.strokeStyle=accent;ctx.lineWidth=2;ctx.beginPath();
+      for(i=0;i<=M;i++){t=i/M;x=X(t);y=Y(sAt(t));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+      ctx.strokeStyle=warn;ctx.lineWidth=1.6;ctx.setLineDash([5,4]);ctx.beginPath();
+      for(i=0;i<=M;i++){t=i/M;x=X(t);y=Y(Math.sin(2*Math.PI*g*t));i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.setLineDash([]);
+    }
+
+    // ---- Шаг 2: произведение (площадь) ----
+    function drawProd(g){
+      var ctx=eProd.getContext('2d'),W=eProd.width,H=eProd.height;ctx.clearRect(0,0,W,H);
+      var line=css('--line'),ok=css('--ok'),warn=css('--warn'),ink=css('--ink');
+      var pad=24,y0=H/2,pmax=1.95;
+      function X(t){return pad+t*(W-2*pad);} function Y(v){return y0-(v/pmax)*(H/2-12);}
+      var M=700,i,t,pv,x,y;
+      for(i=0;i<M;i++){ t=i/M; pv=sAt(t)*Math.sin(2*Math.PI*g*t); x=X(t); y=Y(pv);
+        ctx.strokeStyle=pv>=0?ok:warn; ctx.globalAlpha=0.45; ctx.beginPath();ctx.moveTo(x,y0);ctx.lineTo(x,y);ctx.stroke(); ctx.globalAlpha=1; }
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(pad,y0);ctx.lineTo(W-pad,y0);ctx.stroke();
+      ctx.strokeStyle=ink;ctx.lineWidth=1.3;ctx.beginPath();
+      for(i=0;i<=M;i++){t=i/M;pv=sAt(t)*Math.sin(2*Math.PI*g*t);x=X(t);y=Y(pv);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();
+    }
+
+    // ---- Шаг 3: спектр со «бегущей» линией ----
+    var sweep=0;
+    function drawSpec(){
+      var ctx=eSpec.getContext('2d'),W=eSpec.width,H=eSpec.height;ctx.clearRect(0,0,W,H);
+      var line=css('--line'),accent=css('--accent'),muted=css('--muted'),warn=css('--warn');
+      var padL=34,padR=16,padT=10,padB=24, x0=padL, y0=H-padB;
+      function X(g){return x0+(g/GMAX)*(W-padL-padR);} function Y(m){return y0-(m/gmaxVal)*(H-padT-padB);}
+      ctx.strokeStyle=line;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x0,padT);ctx.lineTo(x0,y0);ctx.lineTo(W-padR,y0);ctx.stroke();
+      ctx.fillStyle=muted;ctx.font='11px sans-serif';ctx.textAlign='center';
+      for(var fq=0;fq<=GMAX;fq+=10){ var x=X(fq); ctx.fillText(fq+'',x,H-8);
+        ctx.strokeStyle=line;ctx.beginPath();ctx.moveTo(x,padT);ctx.lineTo(x,y0);ctx.stroke(); }
+      ctx.fillText('частота g, Гц', W-padR-46, H-8);
+      var cutG=sweep, i, x, y;
+      // весь спектр — бледно
+      ctx.strokeStyle=muted;ctx.globalAlpha=0.35;ctx.lineWidth=1.4;ctx.beginPath();
+      for(i=0;i<GRID.length;i++){x=X(GRID[i]);y=Y(SPEC[i]);i?ctx.lineTo(x,y):ctx.moveTo(x,y);}ctx.stroke();ctx.globalAlpha=1;
+      // раскрытая часть — ярко
+      ctx.strokeStyle=accent;ctx.lineWidth=2.2;ctx.beginPath();var started=false;
+      for(i=0;i<GRID.length;i++){ if(GRID[i]>cutG) break; x=X(GRID[i]);y=Y(SPEC[i]); started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true; }
+      if(started) ctx.stroke();
+      // курсор
+      var xc=X(cutG), mc=mag(cutG);
+      ctx.strokeStyle=warn;ctx.lineWidth=1.4;ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(xc,padT);ctx.lineTo(xc,y0);ctx.stroke();ctx.setLineDash([]);
+      ctx.fillStyle=warn;ctx.beginPath();ctx.arc(xc,Y(mc),4,0,2*Math.PI);ctx.fill();
+      ctx.textAlign='left';ctx.font='12px sans-serif';
+      ctx.fillText('g='+Math.round(cutG)+' Гц, отклик '+fmt(mc), Math.min(xc+8,W-140), padT+14);
+      // подписи пиков после прохождения
+      ctx.fillStyle=accent;ctx.font='bold 12px sans-serif';ctx.textAlign='center';
+      [12,30].forEach(function(pf){ if(cutG>=pf) ctx.fillText(pf+' Гц', X(pf), Y(mag(pf))-8); });
+    }
+
+    function updOut(){
+      var g=+eg.value; egv.textContent=g+' Гц';
+      var r=respSin(g), a=Math.abs(r);
+      var hit = a>0.35;
+      out.className = hit ? 'readout ok' : 'readout bad';
+      out.innerHTML = 'Отклик на g='+g+' Гц: <span class="big">S = '+fmt(r)+'</span>. '+
+        (hit ? 'Площадь большая → <b>эта частота ЕСТЬ в сигнале</b> (пик!).'
+             : 'Площадь почти нулевая (плюсы гасят минусы) → <b>такой частоты в сигнале нет</b>.');
+    }
+
+    function redrawStatic(){ var g=+eg.value; drawSig(g); drawProd(g); updOut(); }
+    eg.addEventListener('input', redrawStatic);
+    var prev=window.__redraw; window.__redraw=function(){ if(prev) prev(); redrawStatic(); };
+
+    function frame(){ sweep+=0.4; if(sweep>GMAX) sweep=0; drawSpec(); requestAnimationFrame(frame); }
+    redrawStatic(); requestAnimationFrame(frame);
+  })();
+</script>
+
+</body>
+</html>
