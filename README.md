@@ -9,6 +9,12 @@ Self-contained HTML labs: sliders, live canvas plots, instant feedback. Nothing 
 That link opens a normal web page. Sliders, live plots and hints all
 work immediately - nothing to download, install or build.
 
+### Справочно — какая математика нужна для нейротехнологий
+
+| Lab | Topic | Lab | Notebook | Run it |
+|-----|-------|-----|----------|--------|
+| **MATH** | Math for neurotechnology — what to learn, and how well | [open](https://biomenace.github.io/digital-signal-processing/reference/math-for-neurotech.html) | - | - |
+
 ### Часть 1 — Основы цифровой обработки сигналов
 
 | Lab | Topic | Lab | Notebook | Run it |
@@ -43,6 +49,12 @@ work immediately - nothing to download, install or build.
 
 Every technique is listed once, in the lab where it first appears.
 A lab built entirely out of earlier machinery says so.
+
+### Справочно — какая математика нужна для нейротехнологий
+
+| Lab | Topic | Introduced here |
+|-----|-------|-----------------|
+| **MATH** | Math for neurotechnology — what to learn, and how well | не лабораторная, а справочный список тем: линейная алгебра, теория вероятностей, матанализ, оптимизация, статистика — с указанием, кто их требует (магистратура, PhD, отдельные курсы) и на каком уровне. Страница на английском |
 
 ### Часть 1 — Основы цифровой обработки сигналов
 
