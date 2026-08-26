@@ -13,7 +13,7 @@ work immediately - nothing to download, install or build.
 
 | Lab | Topic | Lab | Notebook | Run it |
 |-----|-------|-----|----------|--------|
-| **MATH** | Math for neurotechnology — what to learn, and how well | [open](https://biomenace.github.io/digital-signal-processing/reference/math-for-neurotech.html) | - | - |
+| **MATH** | Math for neurotechnology — universities, and what they ask for | [open](https://biomenace.github.io/digital-signal-processing/reference/math-for-neurotech.html) | - | - |
 
 ### Часть 1 — Основы цифровой обработки сигналов
 
@@ -54,7 +54,7 @@ A lab built entirely out of earlier machinery says so.
 
 | Lab | Topic | Introduced here |
 |-----|-------|-----------------|
-| **MATH** | Math for neurotechnology — what to learn, and how well | не лабораторная, а справочный список тем: линейная алгебра, теория вероятностей, матанализ, оптимизация, статистика — с указанием, кто их требует (магистратура, PhD, отдельные курсы) и на каком уровне. Страница на английском |
+| **MATH** | Math for neurotechnology — universities, and what they ask for | не лабораторная, а справка к заданию преподавателя: девять немецких вузов — что там за специальность и чего они ждут от поступающего, плюс список математических тем с указанием, кто их требует и на каком уровне. Всё со ссылками на модульные справочники и вакансии. Страница на английском |
 
 ### Часть 1 — Основы цифровой обработки сигналов
 
