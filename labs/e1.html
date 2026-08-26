@@ -115,6 +115,49 @@
   .formula-ex{background:var(--code-bg); color:var(--code-ink); border-radius:10px;
     padding:12px 16px; margin:10px 0; font-size:14.5px; line-height:1.6;}
 </style>
+<!-- lab-ui: shared slider fixes, injected by sanitize.py -->
+<style>
+/* Shared slider fixes, injected into every lab by sanitize.py.
+   Loaded after the lab's own <style>, so equal-specificity rules win here.
+
+   Why each rule exists:
+     * a flex item defaults to min-width:auto, and a range input reports an
+       automatic minimum of ~129px, so a .ctrl row could not shrink below
+       label + 129 + value. Two of those in a `1fr 1fr` grid (whose tracks are
+       minmax(auto,1fr), also auto-floored) overflowed the card below ~820px of
+       usable width: the page grew a horizontal scrollbar and dragging a slider
+       shoved the layout sideways.
+     * without user-select:none a drag that starts a few pixels off the thumb
+       selects the label text and drags the selection instead.
+     * without touch-action:none a touch or trackpad drag pans the page while
+       the thumb moves. */
+
+.controls{grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  -webkit-user-select:none; user-select:none;}
+@media(max-width:760px){.controls{grid-template-columns:minmax(0,1fr);}}
+
+.ctrl{min-width:0;}
+.ctrl label{min-width:0; overflow-wrap:anywhere;}
+.ctrl input[type=range]{min-width:0; touch-action:none;
+  -webkit-tap-highlight-color:transparent;}
+
+/* stepper buttons */
+.ux-step{flex:0 0 auto; width:22px; height:22px; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line,#d7dce5); border-radius:6px;
+  background:var(--chip,#eef1f6); color:var(--ink,#1a1f2b);
+  font:600 15px/1 inherit; cursor:pointer;
+  -webkit-appearance:none; appearance:none;
+  -webkit-user-select:none; user-select:none; touch-action:manipulation;}
+.ux-step:hover:not(:disabled){border-color:var(--accent,#3b6ea5);
+  color:var(--accent,#3b6ea5);}
+.ux-step:active:not(:disabled){transform:translateY(1px);}
+.ux-step:disabled{opacity:.32; cursor:default;}
+.ux-step:focus-visible{outline:2px solid var(--accent,#3b6ea5); outline-offset:1px;}
+
+/* a fixed-width tooltip is another source of horizontal overflow */
+.term::after{max-width:min(250px,72vw);}
+</style>
 </head>
 <body>
 <!-- injected by publish.py: link back to the lab index -->
@@ -674,5 +717,108 @@
   })();
 </script>
 
+<script>
+/* Shared slider stepper buttons, injected into every lab by sanitize.py.
+
+   Puts a - and a + button around every range input: one step per click, ten
+   with Shift held, auto-repeat while the button is held down. Every change is
+   announced with bubbling `input` and `change` events, which is exactly what
+   the lab's own listeners are already bound to, so no lab code changes.
+
+   Idempotent: a slider that already has its buttons is skipped. */
+(function () {
+  var REPEAT_DELAY = 380, REPEAT_EVERY = 90, BIG = 10;
+
+  function num(v, fallback) {
+    v = parseFloat(v);
+    return isFinite(v) ? v : fallback;
+  }
+
+  function nudge(range, dir, mult) {
+    if (range.disabled) return;
+    var min = num(range.min, 0),
+        max = num(range.max, 100),
+        step = num(range.step, 1) || 1,           // step="any" -> 1
+        value = num(range.value, min),
+        grid = Math.round((value - min) / step) + dir * (mult || 1),
+        next = Math.min(max, Math.max(min, min + grid * step)),
+        before = range.value;
+    range.value = next;
+    if (range.value === before) return;
+    range.dispatchEvent(new Event('input', { bubbles: true }));
+    range.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function refresh(range, minus, plus) {
+    var value = num(range.value, 0);
+    minus.disabled = range.disabled || value <= num(range.min, 0);
+    plus.disabled = range.disabled || value >= num(range.max, 100);
+  }
+
+  function button(text, label) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ux-step';
+    b.textContent = text;
+    b.tabIndex = -1;                 // the slider itself is the keyboard control
+    b.setAttribute('aria-hidden', 'true');
+    b.title = label + ' (с Shift — на ' + BIG + ' делений)';
+    return b;
+  }
+
+  function wire(range) {
+    if (range.dataset.uxStep) return;
+    range.dataset.uxStep = '1';
+
+    var minus = button('−', 'Шаг влево'),
+        plus = button('+', 'Шаг вправо'),
+        timers = [];
+
+    function stop() {
+      while (timers.length) clearTimeout(timers.pop());
+    }
+
+    function hold(dir) {
+      return function (e) {
+        if (e.button) return;                      // left button / touch only
+        var mult = e.shiftKey ? BIG : 1;
+        nudge(range, dir, mult);
+        timers.push(setTimeout(function tick() {
+          nudge(range, dir, mult);
+          timers.push(setTimeout(tick, REPEAT_EVERY));
+        }, REPEAT_DELAY));
+      };
+    }
+
+    minus.addEventListener('pointerdown', hold(-1));
+    plus.addEventListener('pointerdown', hold(1));
+    minus.addEventListener('contextmenu', stop);
+    plus.addEventListener('contextmenu', stop);
+    window.addEventListener('pointerup', stop);
+    window.addEventListener('pointercancel', stop);
+    window.addEventListener('blur', stop);
+
+    range.parentNode.insertBefore(minus, range);
+    range.parentNode.insertBefore(plus, range.nextSibling);
+
+    var sync = function () { refresh(range, minus, plus); };
+    range.addEventListener('input', sync);
+    range.addEventListener('change', sync);
+    sync();
+  }
+
+  function scan() {
+    var all = document.querySelectorAll('input[type="range"], input[type=range]');
+    for (var i = 0; i < all.length; i++) wire(all[i]);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', scan);
+  } else {
+    scan();
+  }
+  window.addEventListener('load', scan);          // catches late-built widgets
+})();
+</script>
 </body>
 </html>
