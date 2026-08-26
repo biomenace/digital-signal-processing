@@ -57,6 +57,11 @@
   .lab .name{font-size:18px; font-weight:600; margin:0;}
   .lab .methods{font-size:13px; line-height:1.45; color:var(--muted,#6b7684);
                 margin:5px 0 0;}
+  /* a direct child of the .labs grid, so the grid gap already spaces it */
+  h2.group{font-size:15px; font-weight:700; letter-spacing:.02em;
+           color:var(--muted); margin:14px 0 0; padding-bottom:8px;
+           border-bottom:1px solid var(--line);}
+  h2.group:first-child{margin-top:0;}
   .lab .nb{
     flex:none; text-decoration:none; white-space:nowrap;
     background:var(--chip); color:var(--accent); border:1px solid var(--line);
@@ -100,6 +105,7 @@
 </div>
 
 <div class="labs">
+  <h2 class="group">Часть 1 — Основы цифровой обработки сигналов</h2>
   <div class="lab">
     <a class="main" href="labs/e1.html">
       <span class="id">E1</span>
@@ -145,6 +151,7 @@
     <a class="colab" href="https://colab.research.google.com/github/biomenace/digital-signal-processing/blob/main/notebooks/e5.ipynb" title="Run this notebook in Google Colab"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
     <a class="nb" href="https://github.com/biomenace/digital-signal-processing/blob/main/notebooks/e5.ipynb">Notebook &rarr;</a>
   </div>
+  <h2 class="group">Часть 2 — Распознавание намерения по ЭМГ (открытый датасет)</h2>
   <div class="lab">
     <a class="main" href="labs/e6.html">
       <span class="id">E6</span>
@@ -208,6 +215,7 @@
     <a class="colab" href="https://colab.research.google.com/github/biomenace/digital-signal-processing/blob/main/notebooks/e12.ipynb" title="Run this notebook in Google Colab"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
     <a class="nb" href="https://github.com/biomenace/digital-signal-processing/blob/main/notebooks/e12.ipynb">Notebook &rarr;</a>
   </div>
+  <h2 class="group">Часть 3 — Собственный сигнал и управление схватом</h2>
   <div class="lab">
     <a class="main" href="labs/e13.html">
       <span class="id">E13</span>
@@ -221,7 +229,7 @@
     <a class="main" href="labs/e14.html">
       <span class="id">E14</span>
       <p class="name">Обработка собственной записи: полный офлайн-конвейер</p>
-      <p class="methods">новых методов нет — перенос конвейера E3 + E5 + E6 + E7 на свои данные; новое только персональная калибровка (дообучение модели на своих примерах)</p>
+      <p class="methods">интеграция конвейера E3 + E5 + E6 + E7 на собственных данных; новое — персональная калибровка модели (дообучение на своих примерах)</p>
     </a>
     <a class="colab" href="https://colab.research.google.com/github/biomenace/digital-signal-processing/blob/main/notebooks/e14.ipynb" title="Run this notebook in Google Colab"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
     <a class="nb" href="https://github.com/biomenace/digital-signal-processing/blob/main/notebooks/e14.ipynb">Notebook &rarr;</a>
@@ -230,7 +238,7 @@
     <a class="main" href="labs/e15.html">
       <span class="id">E15</span>
       <p class="name">Итоговая работа: управление схватом по собственной ЭМГ в реальном времени</p>
-      <p class="methods">новых методов нет — интеграция E10 + E12 на собственном сигнале; новое: замкнутый контур управления и оценка отзывчивости целиком</p>
+      <p class="methods">интеграция E10 + E12 на собственном сигнале; новое — замкнутый контур управления в реальном времени и оценка отзывчивости целиком</p>
     </a>
     <a class="colab" href="https://colab.research.google.com/github/biomenace/digital-signal-processing/blob/main/notebooks/e15.ipynb" title="Run this notebook in Google Colab"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"></a>
     <a class="nb" href="https://github.com/biomenace/digital-signal-processing/blob/main/notebooks/e15.ipynb">Notebook &rarr;</a>
