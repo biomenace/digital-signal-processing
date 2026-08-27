@@ -9,11 +9,12 @@ Self-contained HTML labs: sliders, live canvas plots, instant feedback. Nothing 
 That link opens a normal web page. Sliders, live plots and hints all
 work immediately - nothing to download, install or build.
 
-### Справочно — какая математика нужна для нейротехнологий
+### Справочно — что учить для нейротехнологий и где этому учат
 
 | Lab | Topic | Lab | Notebook | Run it |
 |-----|-------|-----|----------|--------|
-| **MATH** | Math for neurotechnology — universities, and what they ask for | [open](https://biomenace.github.io/digital-signal-processing/reference/math-for-neurotech.html) | - | - |
+| **LEARN** | What to learn — body-coupled prosthetics, eleven countries | [open](https://biomenace.github.io/digital-signal-processing/reference/what-to-learn.html) | - | - |
+| **WHERE** | Where the field lives — 113 institutions, eleven countries | [open](https://biomenace.github.io/digital-signal-processing/reference/institutions.html) | - | - |
 
 ### Часть 1 — Основы цифровой обработки сигналов
 
@@ -54,11 +55,12 @@ work immediately - nothing to download, install or build.
 Every technique is listed once, in the lab where it first appears.
 A lab built entirely out of earlier machinery says so.
 
-### Справочно — какая математика нужна для нейротехнологий
+### Справочно — что учить для нейротехнологий и где этому учат
 
 | Lab | Topic | Introduced here |
 |-----|-------|-----------------|
-| **MATH** | Math for neurotechnology — universities, and what they ask for | не лабораторная, а справка к заданию преподавателя: девять немецких вузов — что там за специальность и чего они ждут от поступающего, плюс список математических тем с указанием, кто их требует и на каком уровне. Всё со ссылками на модульные справочники и вакансии. Страница на английском |
+| **LEARN** | What to learn — body-coupled prosthetics, eleven countries | не лабораторная, а справка: что реально требуют программы по нейроинтерфейсам и бионическим протезам — 113 институтов в одиннадцати странах, сведённые в двадцать тем и разложенные по трём ярусам, от «требуют почти все» до «только если идёшь именно туда». У каждой темы счётчик, ссылки на модульные справочники и вакансии и фраза, которую можно скопировать и найти в самом документе. Фильтр по стране в один клик. Вторая часть — на каком уровне надо знать каждую тему. Страница на английском |
+| **WHERE** | Where the field lives — 113 institutions, eleven countries | спутник предыдущей страницы: тот же материал, но по институтам, а не по темам. Все 113 адресов — что за группа, какая программа или позиция, на каком языке учат, со ссылками на собственные документы вуза. Чипы тем на первой странице ведут сюда. Страница на английском |
 
 ### Часть 1 — Основы цифровой обработки сигналов
 
